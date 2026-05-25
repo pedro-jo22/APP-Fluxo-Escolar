@@ -1,0 +1,666 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>Fluxo Escolar · Gestão Escolar</title>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --bg: #0f1220;
+            --card: #171a2b;
+            --card-hover: #1f253e;
+            --accent: #6c5ce7;
+            --accent-light: #8b7df2;
+            --accent-dark: #5541d9;
+            --text: #f1f2f6;
+            --text-muted: #a4b0be;
+            --danger: #ff4757;
+            --danger-light: #ff6b81;
+            --ok: #2ed573;
+            --ok-light: #5fdf8e;
+            --warn: #ffa502;
+            --overdue: #e67e22;
+            --inativo: #7f8c8d;
+            --border: #2a2e44;
+        }
+
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: 'Segoe UI', -apple-system, Arial, sans-serif;
+            padding-bottom: 80px;
+            font-size: 16px;
+        }
+
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: var(--card); border-radius: 10px; }
+        ::-webkit-scrollbar-thumb { background: var(--accent); border-radius: 10px; }
+
+        header {
+            position: sticky;
+            top: 0;
+            z-index: 20;
+            background: rgba(15, 18, 32, 0.96);
+            backdrop-filter: blur(8px);
+            padding: 12px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .header-left { display: flex; align-items: center; gap: 12px; }
+        .logo { display: flex; align-items: center; gap: 10px; }
+        .logo-icon { background: linear-gradient(135deg, var(--accent), var(--accent-light)); width: 36px; height: 36px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 18px; }
+        .logo-text { font-size: 18px; font-weight: 700; background: linear-gradient(135deg, #a29bfe, var(--accent)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+        .settings-gear { background: rgba(108,92,231,0.15); width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: 0.2s; font-size: 18px; margin-left: 10px; }
+        .settings-gear:hover { background: var(--accent); transform: rotate(15deg); }
+
+        .btn {
+            background: var(--accent);
+            border: none;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 40px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 14px;
+            transition: 0.2s;
+        }
+        .btn:hover { background: var(--accent-dark); transform: translateY(-1px); }
+        .btn-small { padding: 6px 12px; font-size: 12px; }
+        .btn-outline { background: transparent; border: 1px solid var(--accent); color: var(--accent); }
+        .btn-outline:hover { background: rgba(108,92,231,0.1); }
+        .btn-danger { background: var(--danger); color: white; }
+        .btn-danger:hover { background: #e8414f; }
+        .btn-success { background: var(--ok); color: #000; }
+        .btn-success:hover { background: #26c46a; }
+
+        .container { padding: 20px; max-width: 700px; margin: 0 auto; }
+        .hidden { display: none !important; }
+
+        .card {
+            background: var(--card);
+            padding: 18px;
+            border-radius: 20px;
+            border: 1px solid var(--border);
+            margin-bottom: 16px;
+            transition: 0.2s;
+        }
+        .card:hover { border-color: var(--accent); }
+
+        input, select {
+            width: 100%;
+            padding: 12px;
+            border-radius: 14px;
+            border: 1px solid var(--border);
+            background: #0c0f1c;
+            color: white;
+            margin-bottom: 12px;
+            font-size: 14px;
+        }
+        input:focus, select:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 2px rgba(108,92,231,0.2); }
+
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+        .item {
+            background: var(--card);
+            padding: 14px;
+            border-radius: 16px;
+            margin-bottom: 10px;
+            border: 1px solid var(--border);
+            transition: 0.2s;
+            cursor: pointer;
+        }
+        .item:hover { background: var(--card-hover); transform: translateX(5px); border-left: 3px solid var(--accent); }
+
+        .flex-between { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; }
+        .small { font-size: 12px; color: var(--text-muted); }
+
+        .badge {
+            padding: 4px 12px;
+            border-radius: 30px;
+            font-size: 11px;
+            font-weight: 600;
+            display: inline-block;
+        }
+        .badge.ok { background: rgba(46,213,115,0.2); color: var(--ok); border: 1px solid var(--ok); }
+        .badge.warn { background: rgba(255,165,2,0.2); color: var(--warn); border: 1px solid var(--warn); }
+        .badge.danger { background: rgba(255,71,87,0.2); color: var(--danger); border: 1px solid var(--danger); }
+        .badge.overdue { background: rgba(230,126,34,0.2); color: var(--overdue); border: 1px solid var(--overdue); }
+
+        /* KPIs melhorados - como na foto */
+        .kpi-row { 
+            display: flex; 
+            gap: 12px; 
+            margin-bottom: 20px; 
+            flex-wrap: wrap; 
+        }
+
+        .kpi-card {
+            background: var(--card);
+            padding: 16px 12px;
+            border-radius: 20px;
+            flex: 1;
+            text-align: center;
+            cursor: pointer;
+            position: relative;
+            border: 1px solid var(--border);
+            transition: 0.2s;
+        }
+
+        .kpi-card:hover { 
+            background: var(--card-hover); 
+            transform: translateY(-2px); 
+        }
+
+        .kpi-value { 
+            font-size: 28px; 
+            font-weight: bold; 
+            color: var(--accent); 
+            margin-top: 4px;
+            margin-bottom: 4px;
+        }
+
+        /* Ícone de olho SEM fundo preto, posicionado no canto superior direito */
+        .eye-icon {
+            position: absolute;
+            top: 8px;
+            right: 10px;
+            font-size: 14px;
+            cursor: pointer;
+            background: transparent;
+            padding: 2px 4px;
+            border-radius: 20px;
+            opacity: 0.6;
+            transition: opacity 0.2s;
+        }
+
+        .eye-icon:hover {
+            opacity: 1;
+        }
+
+        .eye-icon-large { cursor: pointer; font-size: 13px; background: rgba(108,92,231,0.15); padding: 4px 10px; border-radius: 30px; }
+
+        .grupos-container { display: flex; gap: 12px; margin-bottom: 20px; flex-wrap: wrap; position: relative; }
+        .grupo-card {
+            flex: 1;
+            background: #1e2132;
+            border-radius: 16px;
+            padding: 12px;
+            cursor: pointer;
+            text-align: center;
+            border: 1px solid var(--border);
+        }
+        .grupo-card.active { background: var(--accent); border-color: var(--accent); }
+        .grupo-card:hover { transform: translateY(-2px); }
+        .grupo-nome { font-weight: bold; font-size: 14px; }
+        .grupo-count { font-size: 22px; font-weight: bold; color: var(--accent); margin-top: 5px; }
+        .grupo-card.active .grupo-count { color: white; }
+        .gear-icon { position: absolute; top: -5px; right: -5px; font-size: 12px; cursor: pointer; background: #2a2e44; padding: 4px 8px; border-radius: 20px; }
+
+        .inadimplente-card {
+            background: #1a1015;
+            border-left: 4px solid var(--danger);
+            margin-bottom: 12px;
+            padding: 14px;
+            border-radius: 16px;
+        }
+        .inadimplente-nome { font-size: 16px; font-weight: bold; color: var(--danger); }
+        .inadimplente-tempo { font-size: 13px; color: var(--warn); margin-top: 4px; font-weight: 500; }
+        .badge-tempo { background: rgba(230,126,34,0.2); color: var(--overdue); padding: 2px 10px; border-radius: 20px; font-size: 10px; }
+
+        .modal-pagamento, .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.85);
+            backdrop-filter: blur(4px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+        .modal-pagamento-content, .modal-content {
+            background: var(--card);
+            padding: 20px;
+            border-radius: 24px;
+            width: 90%;
+            max-width: 400px;
+            max-height: 80vh;
+            overflow-y: auto;
+            border: 1px solid var(--border);
+        }
+        .charge-item {
+            background: #1e2132;
+            padding: 12px;
+            border-radius: 14px;
+            margin-bottom: 8px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .charge-item.selected { background: var(--accent); }
+        .charge-checkbox { width: 20px; height: 20px; cursor: pointer; }
+        .modal-total { margin-top: 15px; padding-top: 10px; border-top: 1px solid var(--border); font-size: 18px; font-weight: bold; text-align: center; }
+
+        .toast {
+            position: fixed;
+            bottom: 90px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #1e2132;
+            color: white;
+            padding: 12px 20px;
+            border-radius: 40px;
+            font-size: 13px;
+            z-index: 1000;
+            animation: slideUp 0.3s ease;
+            border-left: 3px solid var(--ok);
+        }
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateX(-50%) translateY(20px); }
+            to { opacity: 1; transform: translateX(-50%) translateY(0); }
+        }
+
+        .divider { height: 1px; background: var(--border); margin: 16px 0; }
+        .radio-group { display: flex; gap: 20px; margin: 8px 0; flex-wrap: wrap; }
+        .radio-label { display: flex; align-items: center; gap: 6px; cursor: pointer; font-size: 13px; }
+        .checkbox-label { display: flex; align-items: center; gap: 8px; margin: 10px 0; cursor: pointer; }
+        .checkbox-label input { width: auto; margin-bottom: 0; }
+
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            display: flex;
+            background: #0c0f1c;
+            border-top: 1px solid var(--border);
+            z-index: 15;
+        }
+        .bottom-nav button {
+            flex: 1;
+            padding: 12px 0;
+            border: none;
+            background: none;
+            color: var(--text-muted);
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+        }
+        .bottom-nav button.active { color: var(--accent); border-top: 2px solid var(--accent); background: rgba(108,92,231,0.1); }
+
+        .top-actions { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
+        .top-btn {
+            flex: 1;
+            background: #1e2132;
+            border: 1px solid var(--border);
+            border-radius: 40px;
+            padding: 10px;
+            cursor: pointer;
+            color: white;
+        }
+        .top-btn.active { background: var(--accent); border-color: var(--accent); }
+
+        .btn-icon-only { background: rgba(255,255,255,0.1); border: none; padding: 4px 12px; border-radius: 30px; cursor: pointer; color: white; }
+        .historico-mov { max-height: 200px; overflow-y: auto; margin-top: 8px; }
+        .linha-mov { padding: 6px 0; border-bottom: 1px solid var(--border); font-size: 12px; }
+        .valor-grande { font-size: 24px; font-weight: bold; }
+        .vault-secret { background: #0a0c16; border: 2px solid var(--accent); }
+        
+        .delete-btn, .btn-excluir {
+            background: var(--danger);
+            color: white !important;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 30px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+        .delete-btn:hover, .btn-excluir:hover { background: #e8414f; }
+        .btn-danger, .delete-btn, [onclick*="excluir"], [onclick*="Excluir"] {
+            color: white !important;
+        }
+
+        .blocked-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: #0a0c15;
+            z-index: 2000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            text-align: center;
+            padding: 20px;
+        }
+        .blocked-card {
+            background: #131725;
+            border-radius: 24px;
+            padding: 30px;
+            max-width: 320px;
+            border-left: 4px solid #ef4444;
+        }
+        .blocked-icon { font-size: 64px; margin-bottom: 20px; }
+        .blocked-title { font-size: 24px; font-weight: bold; color: #ef4444; margin-bottom: 15px; }
+        .blocked-message { color: #8b92b0; margin-bottom: 20px; line-height: 1.5; }
+    </style>
+</head>
+<body>
+
+<div id="appContent">
+    <header>
+        <div class="header-left">
+            <div class="logo"><div class="logo-icon">📋</div><div class="logo-text">Fluxo Escolar</div></div>
+            <div class="settings-gear" id="openSettingsModal">⚙️</div>
+        </div>
+        <button class="btn" id="btnNovoAluno">Matrícula</button>
+    </header>
+
+    <div class="container">
+        <div class="top-actions">
+            <button class="top-btn" data-top="receberHoje">💸 Receber hoje</button>
+            <button class="top-btn" data-top="pendentes">📌 Pendentes</button>
+            <button class="top-btn" data-top="aulas">📅 Aulas</button>
+            <button class="top-btn" data-top="checklist">✅ Checklist</button>
+        </div>
+
+        <div id="viewHome" class="view-pane">
+            <div class="kpi-row">
+                <div class="kpi-card" id="kpiAlunos">
+                    <div class="eye-icon" data-tipo="alunos">👁️</div>
+                    <div class="kpi-value" id="dashAlunos">0</div>
+                    <div class="small">Total de Alunos</div>
+                </div>
+                <div class="kpi-card" id="kpiMensal">
+                    <div class="eye-icon" data-tipo="mensal">👁️</div>
+                    <div class="kpi-value" id="dashMensal">R$0</div>
+                    <div class="small">Mensalidades</div>
+                </div>
+                <div class="kpi-card" id="kpiAtraso">
+                    <div class="eye-icon" data-tipo="atraso">👁️</div>
+                    <div class="kpi-value" id="dashAtrasoHome">R$0</div>
+                    <div class="small">Atrasado</div>
+                </div>
+            </div>
+            <div class="card"><div class="flex-between"><span>💰 CAIXA TOTAL</span><span class="eye-icon-large" id="eyeCaixaGeral">👁️ Mostrar</span></div><div id="caixaContent"><div class="flex-between"><span>Saldo em caixa:</span><strong id="homeCaixa">R$0</strong></div><div class="flex-between"><span>⚠️ Pendências:</span><strong id="homePendCount">0</strong></div><div class="flex-between"><span>🔴 Inadimplentes:</span><strong id="homeAtrasadosCount">0</strong></div></div></div>
+            <div class="card vault-secret"><div class="flex-between"><span>🔐 COFRE SIGILOSO</span><span class="eye-icon-large" id="eyeCofre">👁️ Mostrar</span></div><div id="cofreContent"><div class="flex-between"><span>💵 Saldo no cofre:</span><span class="valor-grande" id="cofreSaldo">R$0</span></div><div class="grid" style="margin:12px 0;"><button class="btn-small btn-success" id="btnEntradaManual">💰 + Entrada</button><button class="btn-small btn-danger" id="btnSaidaManual">💸 - Saída</button></div><div class="small"><div class="flex-between"><strong>📋 Últimas movimentações:</strong><button class="btn-icon-only" id="btnResetHistorico">🗑️ Limpar</button></div><div id="historicoCofre" class="historico-mov"></div></div></div></div>
+        </div>
+
+        <div id="viewAlunos" class="view-pane hidden"><div class="card"><input type="text" id="searchAluno" placeholder="🔍 Buscar aluno..."><div class="grupos-container" id="gruposContainer"></div><div id="alunosListaContainer"></div><div id="nenhumAlunoMsg" class="small" style="text-align:center; padding:30px; display:none;">Nenhum aluno encontrado</div></div></div>
+        <div id="viewTarefas" class="view-pane hidden"><div class="card"><div class="flex-between"><strong>📋 Minhas Tarefas</strong><button class="btn-small" id="addTarefaBtn">+ Nova</button></div><div id="listaTarefas"></div></div></div>
+        <div id="painelReceberHoje" class="view-pane hidden"><div class="card"><strong>💸 Vencimentos de hoje</strong><div id="listaHoje"></div></div></div>
+        <div id="painelPendentes" class="view-pane hidden"><div class="card"><strong>🚨 ALUNOS INADIMPLENTES</strong><div id="listaPendentes"></div></div></div>
+        <div id="painelAulas" class="view-pane hidden"><div class="card"><div class="flex-between"><strong>📅 Grade de Aulas</strong><button class="btn-small" id="btnAddAula">+ Adicionar</button></div><div id="listaAulas"></div></div></div>
+        <div id="painelChecklist" class="view-pane hidden"><div class="card"><div class="flex-between"><strong>✅ Checklist Diário</strong><button class="btn-small" id="btnAddChecklist">+ Adicionar</button></div><div id="checklistContent"></div></div></div>
+
+        <div id="viewAlunoForm" class="view-pane hidden"><div class="card"><h3>📝 Cadastro de Aluno</h3><input type="text" id="nome" placeholder="Nome completo *"><input type="text" id="telefone" placeholder="Telefone"><input type="text" id="endereco" placeholder="Endereço"><input type="text" id="responsavel" placeholder="Responsável *"><input type="text" id="cpfResponsavel" placeholder="CPF do Responsável *"><input type="text" id="telResp" placeholder="Tel. Responsável"><select id="modalidade"></select><select id="plano"><option>Básico</option><option>Premium</option><option>VIP</option></select><select id="statusAluno"><option>Ativo</option><option>Trancado</option><option>Cancelado</option><option>Experimental</option></select><div class="info-matricula"><strong>💰 Valores Financeiros</strong><div class="checkbox-label"><input type="checkbox" id="cobrarMatricula"><span>Cobrar matrícula inicial (R$)</span></div><input type="number" id="valorMatricula" placeholder="Valor da Matrícula" step="0.01"><div class="divider"></div><div class="checkbox-label"><input type="checkbox" id="cobrarRenovacao"><span>🔄 Renovação anual</span></div><input type="number" id="valorRenovacao" placeholder="Valor da Renovação" step="0.01"><div class="radio-group" id="radioRenovacaoGroup"></div><div class="divider"></div><div class="checkbox-label"><input type="checkbox" id="cobrarMensalidade"><span>Cobrar mensalidade (R$)</span></div><input type="number" id="mensalidade" placeholder="Valor da Mensalidade" step="0.01"><input type="number" id="vencimento" placeholder="Dia vencimento (1-31)" min="1" max="31"><div class="small">💡 Deixe em branco se não quiser cobrar</div></div><div id="historicoMatriculaInfo" class="small" style="display:none;"></div><div class="grid"><button class="btn" id="btnSalvarAluno">💾 Salvar</button><button class="btn btn-outline" id="btnCancelarForm">⬅️ Voltar</button></div><button class="btn btn-danger" id="btnExcluirAluno" style="display:none;">🗑️ Excluir Aluno</button></div></div>
+    </div>
+
+    <div class="bottom-nav">
+        <button data-bottom="home">🏠 Home</button>
+        <button data-bottom="alunos">👥 Alunos</button>
+        <button data-bottom="tarefas">📋 Tarefas</button>
+    </div>
+</div>
+
+<script>
+// ========== CONFIGURAÇÃO DO FIREBASE ==========
+const firebaseConfig = {
+    databaseURL: "https://SEU-PROJETO-default-rtdb.firebaseio.com/"  // ← SUBSTITUA PELA SUA URL!
+};
+// =======================================================================
+
+firebase.initializeApp(firebaseConfig);
+const database = firebase.database();
+
+const urlParams = new URLSearchParams(window.location.search);
+const escolaId = urlParams.get('id');
+
+let acessoLiberado = true;
+let statusEscola = "ativa";
+
+function verificarAcessoRemoto() {
+    if(!escolaId) return true;
+    database.ref(`escolas/${escolaId}/status`).on('value', (snapshot) => {
+        const status = snapshot.val();
+        statusEscola = status || "ativa";
+        if(status === "bloqueada") {
+            acessoLiberado = false;
+            mostrarTelaBloqueio("🔒 ACESSO BLOQUEADO", "Seu acesso foi permanentemente bloqueado pelo administrador. Entre em contato com o suporte para mais informações.", "#ef4444");
+        } else if(status === "suspensa") {
+            acessoLiberado = false;
+            mostrarTelaBloqueio("⚠️ ACESSO SUSPENSO", "Seu acesso foi temporariamente suspenso. Entre em contato com o administrador para regularizar sua situação.", "#f59e0b");
+        } else {
+            acessoLiberado = true;
+            esconderTelaBloqueio();
+        }
+    });
+    return true;
+}
+
+function mostrarTelaBloqueio(titulo, mensagem, cor) {
+    const existing = document.getElementById('blockedOverlay');
+    if(existing) existing.remove();
+    const overlay = document.createElement('div');
+    overlay.id = 'blockedOverlay';
+    overlay.className = 'blocked-overlay';
+    overlay.innerHTML = `<div class="blocked-card"><div class="blocked-icon" style="color:${cor}">🔒</div><div class="blocked-title" style="color:${cor}">${titulo}</div><div class="blocked-message">${mensagem}</div><div class="small" style="color:#6b7280">Escola ID: ${escolaId || 'não informado'}</div><button class="btn" style="margin-top:20px; background:#2a2f45" onclick="window.location.reload()">🔄 Tentar novamente</button></div>`;
+    document.body.appendChild(overlay);
+    document.getElementById('appContent').style.opacity = '0.3';
+    document.getElementById('appContent').style.pointerEvents = 'none';
+}
+
+function esconderTelaBloqueio() {
+    const overlay = document.getElementById('blockedOverlay');
+    if(overlay) overlay.remove();
+    document.getElementById('appContent').style.opacity = '1';
+    document.getElementById('appContent').style.pointerEvents = 'auto';
+}
+
+function calcularTempoAtraso(dueDate) {
+    const hoje = new Date();
+    const vencimento = new Date(dueDate);
+    const diffTime = hoje - vencimento;
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    if (diffDays < 0) return "Futuro";
+    if (diffDays < 30) return `${diffDays} dia(s) atrasado`;
+    if (diffDays < 365) {
+        const meses = Math.floor(diffDays / 30);
+        return `${meses} mês(es) atrasado`;
+    }
+    const anos = Math.floor(diffDays / 365);
+    return `${anos} ano(s) atrasado`;
+}
+
+let alunos = [], movimentacoes = [], tarefas = [], aulas = [], checklist = [], grupos = ["Ballet infantil", "Ballet juvenil", "Ballet adulto"];
+let visibilidade = { caixaGeral: false, cofre: false, alunosKPI: false, mensalKPI: false, atrasoKPI: false };
+let grupoSelecionado = null, buscaAtual = '';
+
+function salvarAlunos() { localStorage.setItem('alunos', JSON.stringify(alunos)); }
+function salvarMovimentacoes() { localStorage.setItem('movimentacoes', JSON.stringify(movimentacoes)); }
+function salvarTarefas() { localStorage.setItem('tarefas', JSON.stringify(tarefas)); }
+function salvarAulas() { localStorage.setItem('aulas', JSON.stringify(aulas)); }
+function salvarChecklist() { localStorage.setItem('checklist', JSON.stringify(checklist)); }
+function salvarGrupos() { localStorage.setItem('grupos', JSON.stringify(grupos)); }
+
+function carregarDados() {
+    alunos = JSON.parse(localStorage.getItem('alunos') || '[]');
+    movimentacoes = JSON.parse(localStorage.getItem('movimentacoes') || '[]');
+    tarefas = JSON.parse(localStorage.getItem('tarefas') || '[]');
+    aulas = JSON.parse(localStorage.getItem('aulas') || '[]');
+    checklist = JSON.parse(localStorage.getItem('checklist') || '[]');
+    const gruposSalvos = localStorage.getItem('grupos');
+    if (gruposSalvos) grupos = JSON.parse(gruposSalvos);
+    if (aulas.length === 0) aulas = [{id:1,dia:"Segunda",horario:"14:00",tipo:"Ballet infantil"},{id:2,dia:"Quarta",horario:"16:00",tipo:"Ballet juvenil"},{id:3,dia:"Sexta",horario:"10:00",tipo:"Ballet adulto"}];
+    if (checklist.length === 0) checklist = [{id:1,texto:"Reunião pedagógica",feito:false},{id:2,texto:"Enviar avisos aos pais",feito:false},{id:3,texto:"Verificar materiais",feito:false}];
+    alunos = alunos.map(a => {
+        if (!a.charges) a.charges = [];
+        if (!a.dueDay) a.dueDay = a.vencimento || 10;
+        if (!a.createdAt) a.createdAt = new Date().toISOString().split('T')[0];
+        if (a.valorMatricula === undefined) a.valorMatricula = 0;
+        if (a.matriculaPaga === undefined) a.matriculaPaga = false;
+        if (a.cobrarMatricula === undefined) a.cobrarMatricula = false;
+        if (a.cobrarMensalidade === undefined) a.cobrarMensalidade = false;
+        if (a.cobrarRenovacao === undefined) a.cobrarRenovacao = false;
+        if (a.valorRenovacao === undefined) a.valorRenovacao = 0;
+        if (a.renovacaoTipo === undefined) a.renovacaoTipo = "aniversario";
+        if (a.ultimaRenovacao === undefined) a.ultimaRenovacao = a.createdAt;
+        if (!a.status) a.status = "Ativo";
+        if (!a.cpfResponsavel) a.cpfResponsavel = "";
+        return a;
+    });
+    salvarAlunos();
+}
+
+function hojeStr() { return new Date().toISOString().split('T')[0]; }
+function formatarMoeda(valor) { return `R$ ${valor.toFixed(2)}`; }
+function getMesNome(mes) { const meses = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez']; return meses[mes-1]; }
+function showToast(msg) { const t=document.createElement('div'); t.className='toast'; t.innerHTML=msg; document.body.appendChild(t); setTimeout(()=>t.remove(),3000); }
+
+function adicionarMovimentacao(tipo, valor, desc, alunoId=null, chargeId=null) { if(valor<=0) return; movimentacoes.push({id:Date.now(),tipo,valor,desc,data:hojeStr(),alunoId,chargeId}); salvarMovimentacoes(); atualizarHome(); }
+function calcularSaldoCofre() { return movimentacoes.reduce((t,m)=> m.tipo==='entrada'? t+m.valor : t-m.valor,0); }
+
+function backupDados() { const data={alunos,movimentacoes,tarefas,aulas,checklist,grupos}; const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=`fluxo_backup_${new Date().toISOString().slice(0,19)}.json`; a.click(); showToast('✅ Backup gerado!'); }
+function restaurarBackup(file) { const reader=new FileReader(); reader.onload=e=>{ try{ const data=JSON.parse(e.target.result); if(data.alunos) alunos=data.alunos; if(data.movimentacoes) movimentacoes=data.movimentacoes; if(data.tarefas) tarefas=data.tarefas; if(data.aulas) aulas=data.aulas; if(data.checklist) checklist=data.checklist; if(data.grupos) grupos=data.grupos; salvarAlunos(); salvarMovimentacoes(); salvarTarefas(); salvarAulas(); salvarChecklist(); salvarGrupos(); sincronizarMensalidades(); atualizarAtrasos(); renderGruposAlunos(); atualizarHome(); renderTelasFinanceiras(); showToast('✅ Backup restaurado!'); }catch(e){ showToast('❌ Arquivo inválido'); } }; reader.readAsText(file); }
+
+function abrirModalConfig() { const modal=document.createElement('div'); modal.className='modal'; modal.innerHTML=`<div class="modal-content"><h3>⚙️ Configurações</h3><div class="grid"><button class="btn-small btn-success" id="modalBackupBtn">📤 Backup</button><button class="btn-small btn-outline" id="modalRestoreBtn">📥 Restaurar</button></div><div style="margin-top:15px;"><button class="btn-small btn-outline" id="fecharModalConfig">Fechar</button></div></div>`; document.body.appendChild(modal); document.getElementById('modalBackupBtn').onclick=()=>{ backupDados(); modal.remove(); }; document.getElementById('modalRestoreBtn').onclick=()=>{ const input=document.createElement('input'); input.type='file'; input.accept='application/json'; input.onchange=e=>{ if(e.target.files[0]) restaurarBackup(e.target.files[0]); modal.remove(); }; input.click(); }; document.getElementById('fecharModalConfig').onclick=()=>modal.remove(); }
+
+function verificarRenovacao(aluno) { if(!aluno.cobrarRenovacao || aluno.valorRenovacao<=0) return false; if(aluno.status!=='Ativo' && aluno.status!=='Experimental') return false; const hoje=new Date(); const ultimaRenovacao=aluno.ultimaRenovacao?new Date(aluno.ultimaRenovacao):new Date(aluno.createdAt); let deveCobrar=false, dataVencimento=null; if(aluno.renovacaoTipo==='aniversario'){ const prox=new Date(ultimaRenovacao); prox.setFullYear(prox.getFullYear()+1); if(hoje>=prox){ deveCobrar=true; dataVencimento=prox; } } else if(aluno.renovacaoTipo==='janeiro'){ const anoAtual=hoje.getFullYear(); const janeiroEsteAno=new Date(anoAtual,0,1); const ultimoJaneiro=new Date(ultimaRenovacao.getFullYear(),0,1); if(janeiroEsteAno>ultimoJaneiro && hoje>=janeiroEsteAno){ deveCobrar=true; dataVencimento=janeiroEsteAno; } } if(deveCobrar && !aluno.renovacaoPagaNoPeriodo){ aluno.charges.push({id:Date.now()+Math.random()*10000, ano:dataVencimento.getFullYear(), mes:dataVencimento.getMonth()+1, amount:aluno.valorRenovacao, status:'pending', dueDate:dataVencimento.toISOString().split('T')[0], isRenovacao:true}); aluno.ultimaRenovacao=hoje.toISOString().split('T')[0]; aluno.renovacaoPagaNoPeriodo=true; return true; } return false; }
+
+function gerarChargeMensalidade(aluno,ano,mes,isPrimeira=false){ if(!aluno.cobrarMensalidade || aluno.mensalidade<=0) return null; if(aluno.charges.find(c=>c.ano===ano && c.mes===mes && !c.isRenovacao)) return null; if(aluno.status==='Cancelado' || aluno.status==='Trancado') return null; let dueDay=aluno.dueDay||10; if(dueDay<1||dueDay>31) dueDay=10; const ultimoDia=new Date(ano,mes,0).getDate(); if(dueDay>ultimoDia) dueDay=ultimoDia; const dueDate=`${ano}-${String(mes).padStart(2,'0')}-${String(dueDay).padStart(2,'0')}`; const status=isPrimeira?'paid':'pending'; const charge={id:Date.now()+Math.random()*10000,ano,mes,amount:aluno.mensalidade,status,dueDate,paidDate:status==='paid'?aluno.createdAt:null,isRenovacao:false}; aluno.charges.push(charge); if(status==='paid') adicionarMovimentacao('entrada',aluno.mensalidade,`Mensalidade ${aluno.nome} - ${dueDate}`,aluno.id,charge.id); return charge; }
+
+function sincronizarMensalidades(){ const hoje=new Date(), anoAtual=hoje.getFullYear(), mesAtual=hoje.getMonth()+1; for(let aluno of alunos){ verificarRenovacao(aluno); if(!aluno.cobrarMensalidade || aluno.mensalidade<=0) continue; if(aluno.status==='Cancelado'||aluno.status==='Trancado') continue; const criacao=new Date(aluno.createdAt); let anoInicio=criacao.getFullYear(), mesInicio=criacao.getMonth()+1, primeira=true; for(let ano=anoInicio; ano<=anoAtual; ano++){ let mesFim=(ano===anoAtual)?mesAtual:12, mesStart=(ano===anoInicio)?mesInicio:1; for(let mes=mesStart; mes<=mesFim; mes++){ if(!aluno.charges.find(c=>c.ano===ano && c.mes===mes && !c.isRenovacao)){ gerarChargeMensalidade(aluno,ano,mes,primeira); primeira=false; } else primeira=false; } } } salvarAlunos(); }
+
+function atualizarAtrasos(){ const hoje=hojeStr(); let alterado=false; for(let aluno of alunos){ for(let charge of aluno.charges){ if(charge.status==='pending' && charge.dueDate<hoje){ charge.status='overdue'; alterado=true; } } if(aluno.cobrarRenovacao && aluno.renovacaoPagaNoPeriodo){ const hojeDate=new Date(); const ultimaRenovDate=new Date(aluno.ultimaRenovacao); let reset=false; if(aluno.renovacaoTipo==='aniversario'){ const prox=new Date(ultimaRenovDate); prox.setFullYear(prox.getFullYear()+1); if(hojeDate>=prox) reset=true; } else if(aluno.renovacaoTipo==='janeiro'){ if(hojeDate.getFullYear()>ultimaRenovDate.getFullYear()) reset=true; } if(reset){ aluno.renovacaoPagaNoPeriodo=false; alterado=true; } } } if(alterado) salvarAlunos(); }
+
+function abrirModalPagamento(alunoId){ const aluno=alunos.find(a=>a.id===alunoId); if(!aluno) return; const charges=aluno.charges.filter(c=>c.status!=='paid').sort((a,b)=>a.dueDate.localeCompare(b.dueDate)); if(charges.length===0){ showToast('Sem pendências'); return; } const modal=document.createElement('div'); modal.className='modal-pagamento'; let html=`<div class="modal-pagamento-content"><h3>💰 Receber de ${aluno.nome}</h3><div id="chargesListModal">`; charges.forEach(c=>{ html+=`<div class="charge-item" data-charge-id="${c.id}"><input type="checkbox" class="charge-checkbox" data-charge-id="${c.id}" data-charge-value="${c.amount}"><div class="charge-info"><div><strong>${c.isRenovacao?'🔄 Renovação ':''}${getMesNome(c.mes)}/${c.ano}</strong> - ${formatarMoeda(c.amount)}</div><div class="small">Venc: ${c.dueDate}</div></div></div>`; }); html+=`</div><div class="modal-total">Total: <strong id="modalTotalSelecionado">R$ 0,00</strong></div><div class="grid"><button class="btn btn-success" id="confirmarPagamentoSelecionado">✅ Receber</button><button class="btn btn-outline" id="fecharModalPagamento">❌ Cancelar</button></div></div>`; modal.innerHTML=html; document.body.appendChild(modal); function atualizarTotal(){ let total=0; document.querySelectorAll('.charge-checkbox:checked').forEach(cb=>{ total+=parseFloat(cb.dataset.chargeValue); }); document.getElementById('modalTotalSelecionado').innerHTML=formatarMoeda(total); } document.querySelectorAll('.charge-checkbox').forEach(cb=>cb.addEventListener('change',atualizarTotal)); document.querySelectorAll('.charge-item').forEach(item=>{ item.addEventListener('click',(e)=>{ if(e.target.type!=='checkbox'){ let cb=item.querySelector('.charge-checkbox'); if(cb){ cb.checked=!cb.checked; atualizarTotal(); item.classList.toggle('selected',cb.checked); } } }); }); document.getElementById('confirmarPagamentoSelecionado').onclick=()=>{ let selecionados=document.querySelectorAll('.charge-checkbox:checked'), total=0, pagas=[]; selecionados.forEach(cb=>{ let charge=aluno.charges.find(c=>c.id==parseInt(cb.dataset.chargeId)); if(charge && charge.status!=='paid'){ total+=charge.amount; pagas.push(charge); } }); if(total===0) return; if(confirm(`Confirmar ${formatarMoeda(total)}?`)){ pagas.forEach(charge=>{ charge.status='paid'; charge.paidDate=hojeStr(); adicionarMovimentacao('entrada',charge.amount,`${charge.isRenovacao?'Renovação':'Mensalidade'} ${aluno.nome} - ${charge.dueDate}`,aluno.id,charge.id); }); salvarAlunos(); atualizarAtrasos(); renderTelasFinanceiras(); atualizarHome(); modal.remove(); showToast(`✅ ${formatarMoeda(total)} recebido!`); } }; document.getElementById('fecharModalPagamento').onclick=()=>modal.remove(); atualizarTotal(); }
+
+function renderInadimplentes() {
+    const container = document.getElementById('listaPendentes');
+    if (!container) return;
+    container.innerHTML = '';
+    const devedores = [];
+    for (let aluno of alunos) {
+        let total = 0, cargas = [];
+        for (let c of aluno.charges) {
+            if (c.status === 'overdue') {
+                total += c.amount;
+                cargas.push(c);
+            }
+        }
+        if (total > 0) devedores.push({ aluno, total, quantidade: cargas.length, cargas });
+    }
+    if (devedores.length === 0) {
+        container.innerHTML = '<div class="item" style="text-align:center;">🎉 Nenhum inadimplente!</div>';
+        return;
+    }
+    devedores.sort((a, b) => b.total - a.total);
+    devedores.forEach(item => {
+        const aluno = item.aluno;
+        const tempoAtraso = item.cargas.length > 0 ? calcularTempoAtraso(item.cargas[0].dueDate) : 'Atrasado';
+        const div = document.createElement('div');
+        div.className = 'inadimplente-card';
+        div.innerHTML = `<div class="flex-between"><div class="inadimplente-nome">🚨 ${aluno.nome}</div><button class="btn-small btn-success" onclick="window.abrirModalPagamento(${aluno.id})">💰 Pagar</button></div><div class="inadimplente-tempo">⏰ ${tempoAtraso}</div><div class="inadimplente-total">💸 Deve: ${formatarMoeda(item.total)}</div><div class="inadimplente-detalhes">📅 ${item.quantidade} mensalidade(s) atrasadas</div>`;
+        container.appendChild(div);
+    });
+}
+
+window.abrirModalPagamento = abrirModalPagamento;
+window.mostrarInadimplentes = () => { renderInadimplentes(); mostrarPainel('painelPendentes'); };
+
+function renderReceberHoje(){ const hoje=hojeStr(), container=document.getElementById('listaHoje'); if(!container) return; container.innerHTML=''; let encontrou=false; for(let aluno of alunos){ for(let charge of aluno.charges){ if(charge.dueDate===hoje && charge.status==='pending'){ encontrou=true; const div=document.createElement('div'); div.className='item'; div.innerHTML=`<div class="flex-between"><b>${aluno.nome}</b><span class="badge warn">Vence hoje</span></div><div>${formatarMoeda(charge.amount)}</div><button class="btn-small btn-success" onclick="window.abrirModalPagamento(${aluno.id})">✅ Receber</button>`; container.appendChild(div); } } } if(!encontrou) container.innerHTML='<div class="item" style="text-align:center;">🎉 Nenhuma cobrança para hoje.</div>'; }
+
+function editarGrupos(){ const modal=document.createElement('div'); modal.className='modal'; modal.innerHTML=`<div class="modal-content"><h3>⚙️ Gerenciar Grupos</h3><div id="listaGruposEdit"></div><div class="grid"><button class="btn-small btn-success" id="addGrupoBtn">+ Novo</button><button class="btn-small btn-outline" id="fecharGrupoBtn">Fechar</button></div></div>`; document.body.appendChild(modal); function render(){ const c=document.getElementById('listaGruposEdit'); c.innerHTML=''; grupos.forEach((g,idx)=>{ const div=document.createElement('div'); div.style.cssText='display:flex; gap:8px; margin-bottom:8px;'; div.innerHTML=`<input type="text" value="${g}" id="grupoInput_${idx}" style="flex:1;"><button class="btn-small btn-outline" onclick="salvarGrupo(${idx})">💾</button><button class="btn-small btn-danger" onclick="removerGrupo(${idx})">🗑️</button>`; c.appendChild(div); }); if(!grupos.length) c.innerHTML='<div class="small">Nenhum grupo</div>'; } window.salvarGrupo=(idx)=>{ const input=document.getElementById(`grupoInput_${idx}`); const novo=input.value.trim(); if(novo && novo!==grupos[idx]){ const antigo=grupos[idx]; grupos[idx]=novo; alunos.forEach(a=>{ if(a.modalidade===antigo) a.modalidade=novo; }); salvarGrupos(); salvarAlunos(); render(); renderGruposAlunos(); atualizarSelectModalidade(); } }; window.removerGrupo=(idx)=>{ if(grupos.length<=1){ alert('Necessário pelo menos um grupo'); return; } const removido=grupos[idx]; if(confirm(`Remover "${removido}"?`)){ grupos.splice(idx,1); if(grupos.length) alunos.forEach(a=>{ if(a.modalidade===removido) a.modalidade=grupos[0]; }); salvarGrupos(); salvarAlunos(); render(); renderGruposAlunos(); atualizarSelectModalidade(); } }; document.getElementById('addGrupoBtn').onclick=()=>{ const novo=prompt("Novo grupo:"); if(novo && novo.trim()){ grupos.push(novo.trim()); salvarGrupos(); render(); renderGruposAlunos(); atualizarSelectModalidade(); } }; document.getElementById('fecharGrupoBtn').onclick=()=>modal.remove(); render(); }
+
+function atualizarSelectModalidade(){ const select=document.getElementById('modalidade'); if(select){ select.innerHTML=''; grupos.forEach(g=>{ const opt=document.createElement('option'); opt.value=g; opt.textContent=g; select.appendChild(opt); }); } }
+
+function renderGruposAlunos(){ const container=document.getElementById('gruposContainer'); container.innerHTML=''; grupos.forEach(grupo=>{ const count=alunos.filter(a=>a.modalidade===grupo).length; const card=document.createElement('div'); card.className=`grupo-card ${grupoSelecionado===grupo?'active':''}`; card.setAttribute('data-grupo',grupo); card.innerHTML=`<div class="grupo-nome">${grupo}</div><div class="grupo-count">${count}</div>`; card.onclick=(e)=>{ if(e.target.classList.contains('gear-icon')) return; grupoSelecionado=grupo; buscaAtual=''; document.getElementById('searchAluno').value=''; document.querySelectorAll('.grupo-card').forEach(c=>c.classList.remove('active')); card.classList.add('active'); atualizarListaAlunos(); document.getElementById('nenhumAlunoMsg').style.display='none'; }; container.appendChild(card); }); const gear=document.createElement('div'); gear.className='gear-icon'; gear.innerHTML='⚙️'; gear.onclick=(e)=>{ e.stopPropagation(); editarGrupos(); }; container.appendChild(gear); if(!grupoSelecionado && !buscaAtual){ document.getElementById('alunosListaContainer').innerHTML=''; document.getElementById('nenhumAlunoMsg').style.display='block'; } else atualizarListaAlunos(); }
+
+function atualizarListaAlunos(){ let filtrados=[]; if(buscaAtual) filtrados=alunos.filter(a=>a.nome.toLowerCase().includes(buscaAtual.toLowerCase())); else if(grupoSelecionado) filtrados=alunos.filter(a=>a.modalidade===grupoSelecionado); const container=document.getElementById('alunosListaContainer'); if(filtrados.length===0){ container.innerHTML=''; document.getElementById('nenhumAlunoMsg').style.display='block'; return; } document.getElementById('nenhumAlunoMsg').style.display='none'; container.innerHTML=''; filtrados.forEach(a=>{ const div=document.createElement('div'); div.className='item'; let info=`${a.nome} <span class="badge ${a.status==='Ativo'?'ok':'inativo'}">${a.status}</span>`; if(a.cobrarMatricula && a.valorMatricula>0) info+=` | Mat: ${formatarMoeda(a.valorMatricula)}`; if(a.cobrarMensalidade && a.mensalidade>0) info+=` | Mens: ${formatarMoeda(a.mensalidade)}`; div.innerHTML=`<b>${info}</b><div class="small">${a.modalidade} | Vence dia ${a.dueDay}</div><div class="small">CPF: ${a.cpfResponsavel||'-'}</div>`; div.onclick=()=>editarAluno(a.id); container.appendChild(div); }); }
+
+function editarAluno(id){ const a=alunos.find(x=>x.id===id); if(!a) return; document.getElementById('nome').value=a.nome; document.getElementById('telefone').value=a.telefone||''; document.getElementById('endereco').value=a.endereco||''; document.getElementById('responsavel').value=a.responsavel||''; document.getElementById('cpfResponsavel').value=a.cpfResponsavel||''; document.getElementById('telResp').value=a.telResp||''; document.getElementById('modalidade').value=a.modalidade; document.getElementById('plano').value=a.plano; document.getElementById('statusAluno').value=a.status; document.getElementById('cobrarMatricula').checked=a.cobrarMatricula; document.getElementById('cobrarMensalidade').checked=a.cobrarMensalidade; document.getElementById('cobrarRenovacao').checked=a.cobrarRenovacao; document.getElementById('valorMatricula').value=a.valorMatricula||''; document.getElementById('mensalidade').value=a.mensalidade||''; document.getElementById('valorRenovacao').value=a.valorRenovacao||''; document.getElementById('vencimento').value=a.dueDay||''; if(document.querySelector(`input[name="renovacaoTipo"][value="${a.renovacaoTipo}"]`)) document.querySelector(`input[name="renovacaoTipo"][value="${a.renovacaoTipo}"]`).checked=true; window.editId=id; document.getElementById('btnExcluirAluno').style.display='block'; mostrarPainel('viewAlunoForm'); }
+
+function salvarAlunoForm(){ const nome=document.getElementById('nome').value.trim(); const responsavel=document.getElementById('responsavel').value.trim(); const cpf=document.getElementById('cpfResponsavel').value.trim(); if(!nome||!responsavel||!cpf) return alert('Preencha nome, responsável e CPF'); const cobrarMatricula=document.getElementById('cobrarMatricula').checked; const cobrarMensalidade=document.getElementById('cobrarMensalidade').checked; const cobrarRenovacao=document.getElementById('cobrarRenovacao').checked; let dueDay=parseInt(document.getElementById('vencimento').value); if(isNaN(dueDay)) dueDay=10; let mensalidade=parseFloat(document.getElementById('mensalidade').value)||0; let valorMatricula=parseFloat(document.getElementById('valorMatricula').value)||0; let valorRenovacao=parseFloat(document.getElementById('valorRenovacao').value)||0; const renovacaoTipo=document.querySelector('input[name="renovacaoTipo"]:checked')?.value||'aniversario'; const modalidade=document.getElementById('modalidade').value; const statusAluno=document.getElementById('statusAluno').value; const agora=hojeStr(); if(window.editId){ const idx=alunos.findIndex(a=>a.id===window.editId); if(idx!==-1){ const antigo=alunos[idx]; const novo={...antigo, nome, telefone:document.getElementById('telefone').value, endereco:document.getElementById('endereco').value, responsavel, cpfResponsavel:cpf, telResp:document.getElementById('telResp').value, modalidade, plano:document.getElementById('plano').value, mensalidade, dueDay, valorMatricula, cobrarMatricula, cobrarMensalidade, cobrarRenovacao, valorRenovacao, renovacaoTipo, status:statusAluno}; if(cobrarMatricula && valorMatricula>0 && !antigo.matriculaPaga){ novo.matriculaPaga=true; adicionarMovimentacao('entrada',valorMatricula,`Matrícula ${nome}`,novo.id); } else novo.matriculaPaga=antigo.matriculaPaga; for(let ch of novo.charges) if(ch.status!=='paid' && !ch.isRenovacao) ch.amount=mensalidade; alunos[idx]=novo; showToast(`✅ ${nome} atualizado!`); } cancelarForm(); mostrarPainel('viewAlunos'); } else { const novo={ id:Date.now(), nome, telefone:document.getElementById('telefone').value, endereco:document.getElementById('endereco').value, responsavel, cpfResponsavel:cpf, telResp:document.getElementById('telResp').value, modalidade, plano:document.getElementById('plano').value, mensalidade, dueDay, valorMatricula, cobrarMatricula, cobrarMensalidade, cobrarRenovacao, valorRenovacao, renovacaoTipo, matriculaPaga:false, status:statusAluno, charges:[], createdAt:agora, ultimaRenovacao:agora, renovacaoPagaNoPeriodo:false }; if(cobrarMatricula && valorMatricula>0){ novo.matriculaPaga=true; adicionarMovimentacao('entrada',valorMatricula,`Matrícula ${nome}`,novo.id); showToast(`✅ ${nome} cadastrado! Matrícula: ${formatarMoeda(valorMatricula)}`); } else showToast(`✅ ${nome} cadastrado!`); alunos.push(novo); limparFormulario(); } salvarAlunos(); sincronizarMensalidades(); atualizarAtrasos(); renderGruposAlunos(); atualizarHome(); renderTelasFinanceiras(); if(!window.editId) mostrarPainel('viewAlunoForm'); }
+
+function cancelarForm(){ window.editId=null; document.getElementById('btnExcluirAluno').style.display='none'; document.getElementById('historicoMatriculaInfo').style.display='none'; limparFormulario(); mostrarPainel('viewAlunos'); }
+function limparFormulario(){ document.getElementById('nome').value=''; document.getElementById('telefone').value=''; document.getElementById('endereco').value=''; document.getElementById('responsavel').value=''; document.getElementById('cpfResponsavel').value=''; document.getElementById('telResp').value=''; document.getElementById('valorMatricula').value=''; document.getElementById('mensalidade').value=''; document.getElementById('valorRenovacao').value=''; document.getElementById('vencimento').value=''; document.getElementById('cobrarMatricula').checked=false; document.getElementById('cobrarMensalidade').checked=false; document.getElementById('cobrarRenovacao').checked=false; if(grupos.length) document.getElementById('modalidade').value=grupos[0]; document.getElementById('plano').value='Básico'; document.getElementById('statusAluno').value='Ativo'; }
+function excluirAluno(id){ if(confirm('Excluir aluno?')){ alunos=alunos.filter(a=>a.id!==id); salvarAlunos(); sincronizarMensalidades(); atualizarAtrasos(); grupoSelecionado=null; buscaAtual=''; renderGruposAlunos(); renderTelasFinanceiras(); atualizarHome(); if(window.editId===id) cancelarForm(); showToast('✅ Aluno removido'); } }
+
+function renderTelasFinanceiras(){ renderReceberHoje(); renderInadimplentes(); atualizarHome(); }
+function atualizarHome(){ const totalAlunos=alunos.length; let somaMensal=0, totalAtraso=0, pendCount=0, atrasadosCount=0; for(let a of alunos){ somaMensal+=a.mensalidade; for(let c of a.charges){ if(c.status==='overdue'){ totalAtraso+=c.amount; atrasadosCount++; } else if(c.status==='pending') pendCount++; } } const saldoCofre=calcularSaldoCofre(); document.getElementById('dashAlunos').innerText=visibilidade.alunosKPI?totalAlunos:'•••'; document.getElementById('dashMensal').innerText=visibilidade.mensalKPI?formatarMoeda(somaMensal):'•••'; document.getElementById('dashAtrasoHome').innerHTML=visibilidade.atrasoKPI?formatarMoeda(totalAtraso):'•••'; if(visibilidade.caixaGeral){ document.getElementById('homeCaixa').innerHTML=formatarMoeda(saldoCofre); document.getElementById('homePendCount').innerHTML=pendCount; document.getElementById('homeAtrasadosCount').innerHTML=atrasadosCount; } else { document.getElementById('homeCaixa').innerHTML='•••'; document.getElementById('homePendCount').innerHTML='•••'; document.getElementById('homeAtrasadosCount').innerHTML='•••'; } if(visibilidade.cofre){ document.getElementById('cofreSaldo').innerHTML=formatarMoeda(saldoCofre); const histDiv=document.getElementById('historicoCofre'); histDiv.innerHTML=''; [...movimentacoes].reverse().slice(0,20).forEach(mov=>{ const cor=mov.tipo==='entrada'?'#2ed573':'#ff4757'; histDiv.innerHTML+=`<div class="linha-mov"><span style="color:${cor}">${mov.tipo==='entrada'?'+':'-'} ${formatarMoeda(mov.valor)}</span> - ${mov.desc} <span class="small">(${mov.data})</span></div>`; }); if(movimentacoes.length===0) histDiv.innerHTML='<div class="small">Nenhuma movimentação</div>'; } else { document.getElementById('cofreSaldo').innerHTML='•••'; document.getElementById('historicoCofre').innerHTML='<div class="small">👁️ Clique para ver</div>'; } }
+
+function toggleCaixaGeral(){ visibilidade.caixaGeral=!visibilidade.caixaGeral; document.getElementById('eyeCaixaGeral').innerHTML=visibilidade.caixaGeral?'👁️ Ocultar':'👁️ Mostrar'; atualizarHome(); }
+function toggleCofre(){ visibilidade.cofre=!visibilidade.cofre; document.getElementById('eyeCofre').innerHTML=visibilidade.cofre?'👁️ Ocultar':'👁️ Mostrar'; atualizarHome(); }
+function toggleKPI(tipo){ visibilidade[tipo]=!visibilidade[tipo]; atualizarHome(); }
+
+function renderAulas(){ const container=document.getElementById('listaAulas'); if(!container) return; container.innerHTML=''; aulas.forEach(a=>{ const div=document.createElement('div'); div.className='item'; div.innerHTML=`<div class="flex-between"><strong>${a.dia} - ${a.horario}</strong><span class="badge ok">${a.tipo}</span></div><div><button class="btn-small btn-outline" onclick="editarAula(${a.id})">✏️</button> <button class="btn-small btn-danger" onclick="excluirAula(${a.id})">🗑️</button></div>`; container.appendChild(div); }); if(!aulas.length) container.innerHTML='<div class="small">Nenhuma aula</div>'; }
+window.editarAula=(id)=>{ const a=aulas.find(x=>x.id===id); if(!a) return; const tipo=prompt("Tipo:",a.tipo); if(tipo) a.tipo=tipo; const dia=prompt("Dia:",a.dia); if(dia) a.dia=dia; const horario=prompt("Horário:",a.horario); if(horario) a.horario=horario; salvarAulas(); renderAulas(); };
+window.excluirAula=(id)=>{ if(confirm("Excluir?")){ aulas=aulas.filter(a=>a.id!==id); salvarAulas(); renderAulas(); } };
+document.getElementById('btnAddAula')?.addEventListener('click',()=>{ const tipo=prompt("Tipo:"); if(!tipo) return; const dia=prompt("Dia:"); if(!dia) return; const horario=prompt("Horário:"); if(!horario) return; aulas.push({id:Date.now(),dia,horario,tipo}); salvarAulas(); renderAulas(); });
+function renderChecklist(){ const container=document.getElementById('checklistContent'); if(!container) return; container.innerHTML=''; checklist.forEach(item=>{ const div=document.createElement('div'); div.className='item'; div.innerHTML=`<div class="flex-between"><span style="${item.feito?'text-decoration:line-through; opacity:0.6':''}">${item.texto}</span><div><button class="btn-small" onclick="toggleChecklist(${item.id})">${item.feito?'✅':'⬜'}</button><button class="btn-small btn-outline" onclick="editarChecklist(${item.id})">✏️</button><button class="btn-small btn-danger" onclick="excluirChecklist(${item.id})">🗑️</button></div></div>`; container.appendChild(div); }); if(!checklist.length) container.innerHTML='<div class="small">Nenhum item</div>'; }
+window.toggleChecklist=(id)=>{ const item=checklist.find(i=>i.id===id); if(item){ item.feito=!item.feito; salvarChecklist(); renderChecklist(); } };
+window.editarChecklist=(id)=>{ const item=checklist.find(i=>i.id===id); if(!item) return; const txt=prompt("Editar:",item.texto); if(txt){ item.texto=txt; salvarChecklist(); renderChecklist(); } };
+window.excluirChecklist=(id)=>{ if(confirm("Excluir?")){ checklist=checklist.filter(i=>i.id!==id); salvarChecklist(); renderChecklist(); } };
+document.getElementById('btnAddChecklist')?.addEventListener('click',()=>{ const t=prompt("Novo item:"); if(t) checklist.push({id:Date.now(),texto:t,feito:false}); salvarChecklist(); renderChecklist(); });
+function renderTarefas(){ const container=document.getElementById('listaTarefas'); if(!container) return; container.innerHTML=''; tarefas.forEach((t,idx)=>{ const div=document.createElement('div'); div.className='item flex-between'; div.innerHTML=`<span>📌 ${t}</span><button class="btn-small btn-danger" onclick="removerTarefa(${idx})">🗑️</button>`; container.appendChild(div); }); if(!tarefas.length) container.innerHTML='<div class="small">Nenhuma tarefa</div>'; }
+window.removerTarefa=(idx)=>{ tarefas.splice(idx,1); salvarTarefas(); renderTarefas(); };
+document.getElementById('addTarefaBtn')?.addEventListener('click',()=>{ let t=prompt("Nova tarefa:"); if(t){ tarefas.push(t); salvarTarefas(); renderTarefas(); } });
+
+function resetarHistoricoVisual(){ if(confirm("Limpar histórico? O saldo será mantido.")){ const saldoAtual=calcularSaldoCofre(); movimentacoes=[]; salvarMovimentacoes(); if(saldoAtual!==0) adicionarMovimentacao('entrada',saldoAtual,`Ajuste de saldo`); atualizarHome(); showToast('✅ Histórico limpo'); } }
+function configurarCofre(){ document.getElementById('btnEntradaManual')?.addEventListener('click',()=>{ const v=parseFloat(prompt("Valor da entrada (R$):")); if(v&&v>0){ const d=prompt("Descrição:"); adicionarMovimentacao('entrada',v,d||"Entrada manual"); showToast(`✅ Entrada de ${formatarMoeda(v)}`); } }); document.getElementById('btnSaidaManual')?.addEventListener('click',()=>{ const saldo=calcularSaldoCofre(); const v=parseFloat(prompt(`Valor da saída - Saldo: ${formatarMoeda(saldo)}:`)); if(v&&v>0){ if(v>saldo){ alert("Saldo insuficiente"); return; } const d=prompt("Descrição:"); adicionarMovimentacao('saida',v,d||"Saída manual"); showToast(`✅ Saída de ${formatarMoeda(v)}`); } }); document.getElementById('btnResetHistorico')?.addEventListener('click',resetarHistoricoVisual); }
+
+function mostrarPainel(viewId){ document.querySelectorAll('.view-pane').forEach(p=>p.classList.add('hidden')); document.getElementById(viewId).classList.remove('hidden'); if(viewId==='viewAlunos'){ renderGruposAlunos(); document.getElementById('searchAluno').value=''; buscaAtual=''; grupoSelecionado=null; } if(viewId==='viewHome') atualizarHome(); if(viewId==='painelReceberHoje') renderReceberHoje(); if(viewId==='painelPendentes') renderInadimplentes(); if(viewId==='painelAulas') renderAulas(); if(viewId==='painelChecklist') renderChecklist(); if(viewId==='viewTarefas') renderTarefas(); }
+
+function init(){ 
+    carregarDados(); 
+    sincronizarMensalidades(); 
+    atualizarAtrasos(); 
+    atualizarSelectModalidade(); 
+    configurarCofre(); 
+    mostrarPainel('viewHome'); 
+    renderGruposAlunos(); 
+    atualizarHome(); 
+    renderTelasFinanceiras(); 
+    document.querySelector('.radio-group').innerHTML=`<label class="radio-label"><input type="radio" name="renovacaoTipo" value="aniversario" checked> 📅 12 meses após matrícula</label><label class="radio-label"><input type="radio" name="renovacaoTipo" value="janeiro"> 🗓️ Janeiro de cada ano</label>`; 
+    window.abrirModalPagamento=abrirModalPagamento; 
+    window.mostrarInadimplentes=mostrarInadimplentes; 
+    document.getElementById('eyeCaixaGeral')?.addEventListener('click',toggleCaixaGeral); 
+    document.getElementById('eyeCofre')?.addEventListener('click',toggleCofre); 
+    document.querySelectorAll('.eye-icon[data-tipo]').forEach(eye=>{ 
+        eye.addEventListener('click',(e)=>{ e.stopPropagation(); const tipo=eye.getAttribute('data-tipo'); if(tipo==='alunos') toggleKPI('alunosKPI'); if(tipo==='mensal') toggleKPI('mensalKPI'); if(tipo==='atraso') toggleKPI('atrasoKPI'); }); 
+    }); 
+    document.getElementById('searchAluno')?.addEventListener('input',(e)=>{ buscaAtual=e.target.value; grupoSelecionado=null; if(buscaAtual) atualizarListaAlunos(); else{ document.getElementById('alunosListaContainer').innerHTML=''; document.getElementById('nenhumAlunoMsg').style.display='block'; } }); 
+    document.getElementById('btnNovoAluno').onclick=()=>{ limparFormulario(); window.editId=null; document.getElementById('btnExcluirAluno').style.display='none'; mostrarPainel('viewAlunoForm'); }; 
+    document.getElementById('btnSalvarAluno').onclick=salvarAlunoForm; 
+    document.getElementById('btnCancelarForm').onclick=cancelarForm; 
+    document.getElementById('btnExcluirAluno').onclick=()=>{ if(window.editId) excluirAluno(window.editId); }; 
+    document.getElementById('openSettingsModal').onclick=abrirModalConfig; 
+    document.querySelectorAll('.top-btn').forEach(btn=>{ 
+        btn.onclick=()=>{ const acao=btn.getAttribute('data-top'); if(acao==='receberHoje') mostrarPainel('painelReceberHoje'); else if(acao==='pendentes'){ renderInadimplentes(); mostrarPainel('painelPendentes'); } else if(acao==='aulas') mostrarPainel('painelAulas'); else if(acao==='checklist') mostrarPainel('painelChecklist'); document.querySelectorAll('.top-btn').forEach(b=>b.classList.remove('active')); btn.classList.add('active'); }; 
+    }); 
+    document.querySelectorAll('.bottom-nav button').forEach(btn=>{ 
+        btn.onclick=()=>{ const rota=btn.getAttribute('data-bottom'); if(rota==='home') mostrarPainel('viewHome'); if(rota==='alunos') mostrarPainel('viewAlunos'); if(rota==='tarefas') mostrarPainel('viewTarefas'); document.querySelectorAll('.bottom-nav button').forEach(b=>b.classList.remove('active')); btn.classList.add('active'); document.querySelectorAll('.top-btn').forEach(b=>b.classList.remove('active')); }; 
+    }); 
+    
+    verificarAcessoRemoto();
+}
+init();
+</script>
+</body>
+</html>
