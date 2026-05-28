@@ -424,7 +424,6 @@
         <div id="painelAulas" class="view-pane hidden"><div class="card"><div class="flex-between"><strong>📅 Grade de Aulas</strong><button class="btn-small" id="btnAddAula">+ Adicionar</button></div><div id="listaAulas"></div></div></div>
         <div id="painelChecklist" class="view-pane hidden"><div class="card"><div class="flex-between"><strong>✅ Checklist Diário</strong><button class="btn-small" id="btnAddChecklist">+ Adicionar</button></div><div id="checklistContent"></div></div></div>
 
-        <!-- FORMULÁRIO DE CADASTRO COM DATA FÁCIL (3 CAIXAS) -->
         <div id="viewAlunoForm" class="view-pane hidden">
             <div class="card">
                 <h3>📝 Cadastro de Aluno</h3>
@@ -493,11 +492,9 @@
 </div>
 
 <script>
-// ========== CONFIGURAÇÃO DO FIREBASE ==========
 const firebaseConfig = {
-    databaseURL: "https://SEU-PROJETO-default-rtdb.firebaseio.com/"  // ← SUBSTITUA PELA SUA URL!
+    databaseURL: "https://SEU-PROJETO-default-rtdb.firebaseio.com/"
 };
-// =======================================================================
 
 firebase.initializeApp(firebaseConfig);
 const database = firebase.database();
@@ -573,7 +570,6 @@ function salvarChecklist() { localStorage.setItem('checklist', JSON.stringify(ch
 function salvarGrupos() { localStorage.setItem('grupos', JSON.stringify(grupos)); }
 
 function popularSelectsData() {
-    // Popular dias (1 a 31)
     const diaSelect = document.getElementById('nascimentoDia');
     if(diaSelect) {
         diaSelect.innerHTML = '<option value="">Dia</option>';
@@ -582,7 +578,6 @@ function popularSelectsData() {
         }
     }
     
-    // Popular meses
     const mesSelect = document.getElementById('nascimentoMes');
     if(mesSelect) {
         const meses = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
@@ -592,7 +587,6 @@ function popularSelectsData() {
         }
     }
     
-    // Popular anos (1900 até ano atual)
     const anoSelect = document.getElementById('nascimentoAno');
     if(anoSelect) {
         const anoAtual = new Date().getFullYear();
@@ -607,7 +601,6 @@ function formatarDataParaSalvar() {
     const dia = document.getElementById('nascimentoDia').value;
     const mes = document.getElementById('nascimentoMes').value;
     const ano = document.getElementById('nascimentoAno').value;
-    
     if(dia && mes && ano) {
         return `${ano}-${String(mes).padStart(2,'0')}-${String(dia).padStart(2,'0')}`;
     }
@@ -709,7 +702,7 @@ function renderInadimplentes() {
 }
 
 window.abrirModalPagamento = abrirModalPagamento;
-window.mostrarInadimplentes = () => { renderInadimplentes(); mostrarPainel('painelPendentes'); };
+window.mostrarInadimplentes = () => { renderInadimplentes(); window.mostrarPainel('painelPendentes'); };
 
 function renderReceberHoje(){ const hoje=hojeStr(), container=document.getElementById('listaHoje'); if(!container) return; container.innerHTML=''; let encontrou=false; for(let aluno of alunos){ for(let charge of aluno.charges){ if(charge.dueDate===hoje && charge.status==='pending'){ encontrou=true; const div=document.createElement('div'); div.className='item'; div.innerHTML=`<div class="flex-between"><b>${aluno.nome}</b><span class="badge warn">Vence hoje</span></div><div>${formatarMoeda(charge.amount)}</div><button class="btn-small btn-success" onclick="window.abrirModalPagamento(${aluno.id})">✅ Receber</button>`; container.appendChild(div); } } } if(!encontrou) container.innerHTML='<div class="item" style="text-align:center;">🎉 Nenhuma cobrança para hoje.</div>'; }
 
@@ -721,7 +714,7 @@ function renderGruposAlunos(){ const container=document.getElementById('gruposCo
 
 function atualizarListaAlunos(){ let filtrados=[]; if(buscaAtual) filtrados=alunos.filter(a=>a.nome.toLowerCase().includes(buscaAtual.toLowerCase())); else if(grupoSelecionado) filtrados=alunos.filter(a=>a.modalidade===grupoSelecionado); const container=document.getElementById('alunosListaContainer'); if(filtrados.length===0){ container.innerHTML=''; document.getElementById('nenhumAlunoMsg').style.display='block'; return; } document.getElementById('nenhumAlunoMsg').style.display='none'; container.innerHTML=''; filtrados.forEach(a=>{ const div=document.createElement('div'); div.className='item'; let info=`${a.nome} <span class="badge ${a.status==='Ativo'?'ok':'inativo'}">${a.status}</span>`; if(a.cobrarMatricula && a.valorMatricula>0) info+=` | Mat: ${formatarMoeda(a.valorMatricula)}`; if(a.cobrarMensalidade && a.mensalidade>0) info+=` | Mens: ${formatarMoeda(a.mensalidade)}`; div.innerHTML=`<b>${info}</b><div class="small">${a.modalidade} | Vence dia ${a.dueDay}</div><div class="small">📅 Nasc: ${a.dataNascimento || '-'} | CPF: ${a.cpfAluno || '-'}</div><div class="small">👤 Resp: ${a.responsavel} | CPF: ${a.cpfResponsavel||'-'}</div>`; div.onclick=()=>editarAluno(a.id); container.appendChild(div); }); }
 
-function editarAluno(id){ const a=alunos.find(x=>x.id===id); if(!a) return; document.getElementById('nome').value=a.nome; formatarDataParaEditar(a.dataNascimento); document.getElementById('cpfAluno').value=a.cpfAluno || ''; document.getElementById('telefone').value=a.telefone||''; document.getElementById('endereco').value=a.endereco||''; document.getElementById('responsavel').value=a.responsavel||''; document.getElementById('cpfResponsavel').value=a.cpfResponsavel||''; document.getElementById('telResp').value=a.telResp||''; document.getElementById('modalidade').value=a.modalidade; document.getElementById('plano').value=a.plano; document.getElementById('statusAluno').value=a.status; document.getElementById('cobrarMatricula').checked=a.cobrarMatricula; document.getElementById('cobrarMensalidade').checked=a.cobrarMensalidade; document.getElementById('cobrarRenovacao').checked=a.cobrarRenovacao; document.getElementById('valorMatricula').value=a.valorMatricula||''; document.getElementById('mensalidade').value=a.mensalidade||''; document.getElementById('valorRenovacao').value=a.valorRenovacao||''; document.getElementById('vencimento').value=a.dueDay||''; if(document.querySelector(`input[name="renovacaoTipo"][value="${a.renovacaoTipo}"]`)) document.querySelector(`input[name="renovacaoTipo"][value="${a.renovacaoTipo}"]`).checked=true; window.editId=id; document.getElementById('btnExcluirAluno').style.display='block'; mostrarPainel('viewAlunoForm'); }
+function editarAluno(id){ const a=alunos.find(x=>x.id===id); if(!a) return; document.getElementById('nome').value=a.nome; formatarDataParaEditar(a.dataNascimento); document.getElementById('cpfAluno').value=a.cpfAluno || ''; document.getElementById('telefone').value=a.telefone||''; document.getElementById('endereco').value=a.endereco||''; document.getElementById('responsavel').value=a.responsavel||''; document.getElementById('cpfResponsavel').value=a.cpfResponsavel||''; document.getElementById('telResp').value=a.telResp||''; document.getElementById('modalidade').value=a.modalidade; document.getElementById('plano').value=a.plano; document.getElementById('statusAluno').value=a.status; document.getElementById('cobrarMatricula').checked=a.cobrarMatricula; document.getElementById('cobrarMensalidade').checked=a.cobrarMensalidade; document.getElementById('cobrarRenovacao').checked=a.cobrarRenovacao; document.getElementById('valorMatricula').value=a.valorMatricula||''; document.getElementById('mensalidade').value=a.mensalidade||''; document.getElementById('valorRenovacao').value=a.valorRenovacao||''; document.getElementById('vencimento').value=a.dueDay||''; if(document.querySelector(`input[name="renovacaoTipo"][value="${a.renovacaoTipo}"]`)) document.querySelector(`input[name="renovacaoTipo"][value="${a.renovacaoTipo}"]`).checked=true; window.editId=id; document.getElementById('btnExcluirAluno').style.display='block'; window.mostrarPainel('viewAlunoForm'); }
 
 function salvarAlunoForm(){ const nome=document.getElementById('nome').value.trim(); const dataNascimento=formatarDataParaSalvar(); const cpfAluno=document.getElementById('cpfAluno').value.trim(); const responsavel=document.getElementById('responsavel').value.trim(); const cpf=document.getElementById('cpfResponsavel').value.trim();
     if(!nome) return alert('Preencha o nome do aluno');
@@ -741,9 +734,9 @@ function salvarAlunoForm(){ const nome=document.getElementById('nome').value.tri
     const modalidade=document.getElementById('modalidade').value;
     const statusAluno=document.getElementById('statusAluno').value;
     const agora=hojeStr();
-    if(window.editId){ const idx=alunos.findIndex(a=>a.id===window.editId); if(idx!==-1){ const antigo=alunos[idx]; const novo={...antigo, nome, dataNascimento, cpfAluno, telefone:document.getElementById('telefone').value, endereco:document.getElementById('endereco').value, responsavel, cpfResponsavel:cpf, telResp:document.getElementById('telResp').value, modalidade, plano:document.getElementById('plano').value, mensalidade, dueDay, valorMatricula, cobrarMatricula, cobrarMensalidade, cobrarRenovacao, valorRenovacao, renovacaoTipo, status:statusAluno}; if(cobrarMatricula && valorMatricula>0 && !antigo.matriculaPaga){ novo.matriculaPaga=true; adicionarMovimentacao('entrada',valorMatricula,`Matrícula ${nome}`,novo.id); } else novo.matriculaPaga=antigo.matriculaPaga; for(let ch of novo.charges) if(ch.status!=='paid' && !ch.isRenovacao) ch.amount=mensalidade; alunos[idx]=novo; showToast(`✅ ${nome} atualizado!`); } cancelarForm(); mostrarPainel('viewAlunos'); } else { const novo={ id:Date.now(), nome, dataNascimento, cpfAluno, telefone:document.getElementById('telefone').value, endereco:document.getElementById('endereco').value, responsavel, cpfResponsavel:cpf, telResp:document.getElementById('telResp').value, modalidade, plano:document.getElementById('plano').value, mensalidade, dueDay, valorMatricula, cobrarMatricula, cobrarMensalidade, cobrarRenovacao, valorRenovacao, renovacaoTipo, matriculaPaga:false, status:statusAluno, charges:[], createdAt:agora, ultimaRenovacao:agora, renovacaoPagaNoPeriodo:false }; if(cobrarMatricula && valorMatricula>0){ novo.matriculaPaga=true; adicionarMovimentacao('entrada',valorMatricula,`Matrícula ${nome}`,novo.id); showToast(`✅ ${nome} cadastrado! Matrícula: ${formatarMoeda(valorMatricula)}`); } else showToast(`✅ ${nome} cadastrado!`); alunos.push(novo); limparFormulario(); } salvarAlunos(); sincronizarMensalidades(); atualizarAtrasos(); renderGruposAlunos(); atualizarHome(); renderTelasFinanceiras(); if(!window.editId) mostrarPainel('viewAlunoForm'); }
+    if(window.editId){ const idx=alunos.findIndex(a=>a.id===window.editId); if(idx!==-1){ const antigo=alunos[idx]; const novo={...antigo, nome, dataNascimento, cpfAluno, telefone:document.getElementById('telefone').value, endereco:document.getElementById('endereco').value, responsavel, cpfResponsavel:cpf, telResp:document.getElementById('telResp').value, modalidade, plano:document.getElementById('plano').value, mensalidade, dueDay, valorMatricula, cobrarMatricula, cobrarMensalidade, cobrarRenovacao, valorRenovacao, renovacaoTipo, status:statusAluno}; if(cobrarMatricula && valorMatricula>0 && !antigo.matriculaPaga){ novo.matriculaPaga=true; adicionarMovimentacao('entrada',valorMatricula,`Matrícula ${nome}`,novo.id); } else novo.matriculaPaga=antigo.matriculaPaga; for(let ch of novo.charges) if(ch.status!=='paid' && !ch.isRenovacao) ch.amount=mensalidade; alunos[idx]=novo; showToast(`✅ ${nome} atualizado!`); } window.mostrarPainel('viewAlunos'); } else { const novo={ id:Date.now(), nome, dataNascimento, cpfAluno, telefone:document.getElementById('telefone').value, endereco:document.getElementById('endereco').value, responsavel, cpfResponsavel:cpf, telResp:document.getElementById('telResp').value, modalidade, plano:document.getElementById('plano').value, mensalidade, dueDay, valorMatricula, cobrarMatricula, cobrarMensalidade, cobrarRenovacao, valorRenovacao, renovacaoTipo, matriculaPaga:false, status:statusAluno, charges:[], createdAt:agora, ultimaRenovacao:agora, renovacaoPagaNoPeriodo:false }; if(cobrarMatricula && valorMatricula>0){ novo.matriculaPaga=true; adicionarMovimentacao('entrada',valorMatricula,`Matrícula ${nome}`,novo.id); showToast(`✅ ${nome} cadastrado! Matrícula: ${formatarMoeda(valorMatricula)}`); } else showToast(`✅ ${nome} cadastrado!`); alunos.push(novo); limparFormulario(); } salvarAlunos(); sincronizarMensalidades(); atualizarAtrasos(); renderGruposAlunos(); atualizarHome(); renderTelasFinanceiras(); }
 
-function cancelarForm(){ window.editId=null; document.getElementById('btnExcluirAluno').style.display='none'; document.getElementById('historicoMatriculaInfo').style.display='none'; limparFormulario(); mostrarPainel('viewAlunos'); }
+function cancelarForm(){ window.editId=null; document.getElementById('btnExcluirAluno').style.display='none'; document.getElementById('historicoMatriculaInfo').style.display='none'; limparFormulario(); window.mostrarPainel('viewAlunos'); }
 function limparFormulario(){ document.getElementById('nome').value=''; document.getElementById('nascimentoDia').value=''; document.getElementById('nascimentoMes').value=''; document.getElementById('nascimentoAno').value=''; document.getElementById('cpfAluno').value=''; document.getElementById('telefone').value=''; document.getElementById('endereco').value=''; document.getElementById('responsavel').value=''; document.getElementById('cpfResponsavel').value=''; document.getElementById('telResp').value=''; document.getElementById('valorMatricula').value=''; document.getElementById('mensalidade').value=''; document.getElementById('valorRenovacao').value=''; document.getElementById('vencimento').value=''; document.getElementById('cobrarMatricula').checked=false; document.getElementById('cobrarMensalidade').checked=false; document.getElementById('cobrarRenovacao').checked=false; if(grupos.length) document.getElementById('modalidade').value=grupos[0]; document.getElementById('plano').value='Básico'; document.getElementById('statusAluno').value='Ativo'; }
 function excluirAluno(id){ if(confirm('Excluir aluno?')){ alunos=alunos.filter(a=>a.id!==id); salvarAlunos(); sincronizarMensalidades(); atualizarAtrasos(); grupoSelecionado=null; buscaAtual=''; renderGruposAlunos(); renderTelasFinanceiras(); atualizarHome(); if(window.editId===id) cancelarForm(); showToast('✅ Aluno removido'); } }
 
@@ -770,7 +763,67 @@ document.getElementById('addTarefaBtn')?.addEventListener('click',()=>{ let t=pr
 function resetarHistoricoVisual(){ if(confirm("Limpar histórico? O saldo será mantido.")){ const saldoAtual=calcularSaldoCofre(); movimentacoes=[]; salvarMovimentacoes(); if(saldoAtual!==0) adicionarMovimentacao('entrada',saldoAtual,`Ajuste de saldo`); atualizarHome(); showToast('✅ Histórico limpo'); } }
 function configurarCofre(){ document.getElementById('btnEntradaManual')?.addEventListener('click',()=>{ const v=parseFloat(prompt("Valor da entrada (R$):")); if(v&&v>0){ const d=prompt("Descrição:"); adicionarMovimentacao('entrada',v,d||"Entrada manual"); showToast(`✅ Entrada de ${formatarMoeda(v)}`); } }); document.getElementById('btnSaidaManual')?.addEventListener('click',()=>{ const saldo=calcularSaldoCofre(); const v=parseFloat(prompt(`Valor da saída - Saldo: ${formatarMoeda(saldo)}:`)); if(v&&v>0){ if(v>saldo){ alert("Saldo insuficiente"); return; } const d=prompt("Descrição:"); adicionarMovimentacao('saida',v,d||"Saída manual"); showToast(`✅ Saída de ${formatarMoeda(v)}`); } }); document.getElementById('btnResetHistorico')?.addEventListener('click',resetarHistoricoVisual); }
 
-function mostrarPainel(viewId){ document.querySelectorAll('.view-pane').forEach(p=>p.classList.add('hidden')); document.getElementById(viewId).classList.remove('hidden'); if(viewId==='viewAlunos'){ renderGruposAlunos(); document.getElementById('searchAluno').value=''; buscaAtual=''; grupoSelecionado=null; } if(viewId==='viewHome') atualizarHome(); if(viewId==='painelReceberHoje') renderReceberHoje(); if(viewId==='painelPendentes') renderInadimplentes(); if(viewId==='painelAulas') renderAulas(); if(viewId==='painelChecklist') renderChecklist(); if(viewId==='viewTarefas') renderTarefas(); }
+// ========== SISTEMA DE NAVEGAÇÃO COM BOTÃO VOLTAR ==========
+let historicoTelas = ['viewHome'];
+
+window.mostrarPainel = function(viewId) {
+    document.querySelectorAll('.view-pane').forEach(p => p.classList.add('hidden'));
+    document.getElementById(viewId).classList.remove('hidden');
+    
+    if (viewId === 'viewAlunos') {
+        renderGruposAlunos();
+        document.getElementById('searchAluno').value = '';
+        buscaAtual = '';
+        grupoSelecionado = null;
+    }
+    if (viewId === 'viewHome') atualizarHome();
+    if (viewId === 'painelReceberHoje') renderReceberHoje();
+    if (viewId === 'painelPendentes') renderInadimplentes();
+    if (viewId === 'painelAulas') renderAulas();
+    if (viewId === 'painelChecklist') renderChecklist();
+    if (viewId === 'viewTarefas') renderTarefas();
+    
+    if (historicoTelas[historicoTelas.length - 1] !== viewId) {
+        historicoTelas.push(viewId);
+    }
+};
+
+function voltarTela() {
+    if (historicoTelas.length > 1) {
+        const telaAtual = historicoTelas[historicoTelas.length - 1];
+        
+        if (telaAtual === 'viewAlunos' || telaAtual === 'viewTarefas') {
+            historicoTelas = ['viewHome'];
+            window.mostrarPainel('viewHome');
+        } else {
+            historicoTelas.pop();
+            const telaAnterior = historicoTelas[historicoTelas.length - 1];
+            window.mostrarPainel(telaAnterior);
+        }
+        
+        document.querySelectorAll('.bottom-nav button').forEach(btn => btn.classList.remove('active'));
+        if (historicoTelas[historicoTelas.length - 1] === 'viewHome') {
+            document.querySelector('[data-bottom="home"]').classList.add('active');
+        } else if (historicoTelas[historicoTelas.length - 1] === 'viewAlunos') {
+            document.querySelector('[data-bottom="alunos"]').classList.add('active');
+        } else if (historicoTelas[historicoTelas.length - 1] === 'viewTarefas') {
+            document.querySelector('[data-bottom="tarefas"]').classList.add('active');
+        }
+        document.querySelectorAll('.top-btn').forEach(b => b.classList.remove('active'));
+    } else {
+        if (confirm('Deseja sair do aplicativo?')) {
+            window.close();
+            showToast('👉 Deslize para cima ou feche a aba manualmente');
+        }
+    }
+}
+
+window.addEventListener('popstate', function(event) {
+    event.preventDefault();
+    voltarTela();
+});
+
+window.history.pushState({}, '');
 
 function init(){ 
     carregarDados(); 
@@ -779,7 +832,7 @@ function init(){
     atualizarAtrasos(); 
     atualizarSelectModalidade(); 
     configurarCofre(); 
-    mostrarPainel('viewHome'); 
+    window.mostrarPainel('viewHome'); 
     renderGruposAlunos(); 
     atualizarHome(); 
     renderTelasFinanceiras(); 
@@ -792,16 +845,16 @@ function init(){
         eye.addEventListener('click',(e)=>{ e.stopPropagation(); const tipo=eye.getAttribute('data-tipo'); if(tipo==='alunos') toggleKPI('alunosKPI'); if(tipo==='mensal') toggleKPI('mensalKPI'); if(tipo==='atraso') toggleKPI('atrasoKPI'); }); 
     }); 
     document.getElementById('searchAluno')?.addEventListener('input',(e)=>{ buscaAtual=e.target.value; grupoSelecionado=null; if(buscaAtual) atualizarListaAlunos(); else{ document.getElementById('alunosListaContainer').innerHTML=''; document.getElementById('nenhumAlunoMsg').style.display='block'; } }); 
-    document.getElementById('btnNovoAluno').onclick=()=>{ limparFormulario(); window.editId=null; document.getElementById('btnExcluirAluno').style.display='none'; mostrarPainel('viewAlunoForm'); }; 
+    document.getElementById('btnNovoAluno').onclick=()=>{ limparFormulario(); window.editId=null; document.getElementById('btnExcluirAluno').style.display='none'; window.mostrarPainel('viewAlunoForm'); }; 
     document.getElementById('btnSalvarAluno').onclick=salvarAlunoForm; 
     document.getElementById('btnCancelarForm').onclick=cancelarForm; 
     document.getElementById('btnExcluirAluno').onclick=()=>{ if(window.editId) excluirAluno(window.editId); }; 
     document.getElementById('openSettingsModal').onclick=abrirModalConfig; 
     document.querySelectorAll('.top-btn').forEach(btn=>{ 
-        btn.onclick=()=>{ const acao=btn.getAttribute('data-top'); if(acao==='receberHoje') mostrarPainel('painelReceberHoje'); else if(acao==='pendentes'){ renderInadimplentes(); mostrarPainel('painelPendentes'); } else if(acao==='aulas') mostrarPainel('painelAulas'); else if(acao==='checklist') mostrarPainel('painelChecklist'); document.querySelectorAll('.top-btn').forEach(b=>b.classList.remove('active')); btn.classList.add('active'); }; 
+        btn.onclick=()=>{ const acao=btn.getAttribute('data-top'); if(acao==='receberHoje') window.mostrarPainel('painelReceberHoje'); else if(acao==='pendentes'){ renderInadimplentes(); window.mostrarPainel('painelPendentes'); } else if(acao==='aulas') window.mostrarPainel('painelAulas'); else if(acao==='checklist') window.mostrarPainel('painelChecklist'); document.querySelectorAll('.top-btn').forEach(b=>b.classList.remove('active')); btn.classList.add('active'); }; 
     }); 
     document.querySelectorAll('.bottom-nav button').forEach(btn=>{ 
-        btn.onclick=()=>{ const rota=btn.getAttribute('data-bottom'); if(rota==='home') mostrarPainel('viewHome'); if(rota==='alunos') mostrarPainel('viewAlunos'); if(rota==='tarefas') mostrarPainel('viewTarefas'); document.querySelectorAll('.bottom-nav button').forEach(b=>b.classList.remove('active')); btn.classList.add('active'); document.querySelectorAll('.top-btn').forEach(b=>b.classList.remove('active')); }; 
+        btn.onclick=()=>{ const rota=btn.getAttribute('data-bottom'); if(rota==='home') window.mostrarPainel('viewHome'); if(rota==='alunos') window.mostrarPainel('viewAlunos'); if(rota==='tarefas') window.mostrarPainel('viewTarefas'); document.querySelectorAll('.bottom-nav button').forEach(b=>b.classList.remove('active')); btn.classList.add('active'); document.querySelectorAll('.top-btn').forEach(b=>b.classList.remove('active')); }; 
     }); 
     
     verificarAcessoRemoto();
