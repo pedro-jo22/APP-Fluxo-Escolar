@@ -763,7 +763,7 @@ document.getElementById('addTarefaBtn')?.addEventListener('click',()=>{ let t=pr
 function resetarHistoricoVisual(){ if(confirm("Limpar histórico? O saldo será mantido.")){ const saldoAtual=calcularSaldoCofre(); movimentacoes=[]; salvarMovimentacoes(); if(saldoAtual!==0) adicionarMovimentacao('entrada',saldoAtual,`Ajuste de saldo`); atualizarHome(); showToast('✅ Histórico limpo'); } }
 function configurarCofre(){ document.getElementById('btnEntradaManual')?.addEventListener('click',()=>{ const v=parseFloat(prompt("Valor da entrada (R$):")); if(v&&v>0){ const d=prompt("Descrição:"); adicionarMovimentacao('entrada',v,d||"Entrada manual"); showToast(`✅ Entrada de ${formatarMoeda(v)}`); } }); document.getElementById('btnSaidaManual')?.addEventListener('click',()=>{ const saldo=calcularSaldoCofre(); const v=parseFloat(prompt(`Valor da saída - Saldo: ${formatarMoeda(saldo)}:`)); if(v&&v>0){ if(v>saldo){ alert("Saldo insuficiente"); return; } const d=prompt("Descrição:"); adicionarMovimentacao('saida',v,d||"Saída manual"); showToast(`✅ Saída de ${formatarMoeda(v)}`); } }); document.getElementById('btnResetHistorico')?.addEventListener('click',resetarHistoricoVisual); }
 
-// ========== SISTEMA DE NAVEGAÇÃO COM BOTÃO VOLTAR ==========
+// ========== SISTEMA DE NAVEGAÇÃO COM BOTÃO VOLTAR (CORRIGIDO PARA APP BAIXADO) ==========
 let historicoTelas = ['viewHome'];
 
 window.mostrarPainel = function(viewId) {
@@ -810,18 +810,28 @@ function voltarTela() {
             document.querySelector('[data-bottom="tarefas"]').classList.add('active');
         }
         document.querySelectorAll('.top-btn').forEach(b => b.classList.remove('active'));
+        showToast('⬅️ Voltando...');
     } else {
         if (confirm('Deseja sair do aplicativo?')) {
-            window.close();
+            if (window.close) {
+                window.close();
+            }
             showToast('👉 Deslize para cima ou feche a aba manualmente');
         }
     }
 }
 
+// Suporte para navegador normal
 window.addEventListener('popstate', function(event) {
     event.preventDefault();
     voltarTela();
 });
+
+// Suporte para Android WebView (app baixado/instalado)
+document.addEventListener('backbutton', function(event) {
+    event.preventDefault();
+    voltarTela();
+}, false);
 
 window.history.pushState({}, '');
 
