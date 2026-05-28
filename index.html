@@ -137,7 +137,6 @@
         .badge.danger { background: rgba(255,71,87,0.2); color: var(--danger); border: 1px solid var(--danger); }
         .badge.overdue { background: rgba(230,126,34,0.2); color: var(--overdue); border: 1px solid var(--overdue); }
 
-        /* KPIs melhorados - como na foto */
         .kpi-row { 
             display: flex; 
             gap: 12px; 
@@ -170,7 +169,6 @@
             margin-bottom: 4px;
         }
 
-        /* Ícone de olho SEM fundo preto, posicionado no canto superior direito */
         .eye-icon {
             position: absolute;
             top: 8px;
@@ -359,6 +357,23 @@
         .blocked-icon { font-size: 64px; margin-bottom: 20px; }
         .blocked-title { font-size: 24px; font-weight: bold; color: #ef4444; margin-bottom: 15px; }
         .blocked-message { color: #8b92b0; margin-bottom: 20px; line-height: 1.5; }
+
+        .label-campo {
+            font-size: 12px;
+            color: var(--text-muted);
+            margin-bottom: 4px;
+            display: block;
+        }
+        
+        .data-container {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 12px;
+        }
+        .data-container select {
+            flex: 1;
+            margin-bottom: 0;
+        }
     </style>
 </head>
 <body>
@@ -409,7 +424,65 @@
         <div id="painelAulas" class="view-pane hidden"><div class="card"><div class="flex-between"><strong>📅 Grade de Aulas</strong><button class="btn-small" id="btnAddAula">+ Adicionar</button></div><div id="listaAulas"></div></div></div>
         <div id="painelChecklist" class="view-pane hidden"><div class="card"><div class="flex-between"><strong>✅ Checklist Diário</strong><button class="btn-small" id="btnAddChecklist">+ Adicionar</button></div><div id="checklistContent"></div></div></div>
 
-        <div id="viewAlunoForm" class="view-pane hidden"><div class="card"><h3>📝 Cadastro de Aluno</h3><input type="text" id="nome" placeholder="Nome completo *"><input type="text" id="telefone" placeholder="Telefone"><input type="text" id="endereco" placeholder="Endereço"><input type="text" id="responsavel" placeholder="Responsável *"><input type="text" id="cpfResponsavel" placeholder="CPF do Responsável *"><input type="text" id="telResp" placeholder="Tel. Responsável"><select id="modalidade"></select><select id="plano"><option>Básico</option><option>Premium</option><option>VIP</option></select><select id="statusAluno"><option>Ativo</option><option>Trancado</option><option>Cancelado</option><option>Experimental</option></select><div class="info-matricula"><strong>💰 Valores Financeiros</strong><div class="checkbox-label"><input type="checkbox" id="cobrarMatricula"><span>Cobrar matrícula inicial (R$)</span></div><input type="number" id="valorMatricula" placeholder="Valor da Matrícula" step="0.01"><div class="divider"></div><div class="checkbox-label"><input type="checkbox" id="cobrarRenovacao"><span>🔄 Renovação anual</span></div><input type="number" id="valorRenovacao" placeholder="Valor da Renovação" step="0.01"><div class="radio-group" id="radioRenovacaoGroup"></div><div class="divider"></div><div class="checkbox-label"><input type="checkbox" id="cobrarMensalidade"><span>Cobrar mensalidade (R$)</span></div><input type="number" id="mensalidade" placeholder="Valor da Mensalidade" step="0.01"><input type="number" id="vencimento" placeholder="Dia vencimento (1-31)" min="1" max="31"><div class="small">💡 Deixe em branco se não quiser cobrar</div></div><div id="historicoMatriculaInfo" class="small" style="display:none;"></div><div class="grid"><button class="btn" id="btnSalvarAluno">💾 Salvar</button><button class="btn btn-outline" id="btnCancelarForm">⬅️ Voltar</button></div><button class="btn btn-danger" id="btnExcluirAluno" style="display:none;">🗑️ Excluir Aluno</button></div></div>
+        <!-- FORMULÁRIO DE CADASTRO COM DATA FÁCIL (3 CAIXAS) -->
+        <div id="viewAlunoForm" class="view-pane hidden">
+            <div class="card">
+                <h3>📝 Cadastro de Aluno</h3>
+                <input type="text" id="nome" placeholder="Nome completo *">
+                
+                <label class="label-campo">📅 Data de Nascimento *</label>
+                <div class="data-container">
+                    <select id="nascimentoDia">
+                        <option value="">Dia</option>
+                    </select>
+                    <select id="nascimentoMes">
+                        <option value="">Mês</option>
+                    </select>
+                    <select id="nascimentoAno">
+                        <option value="">Ano</option>
+                    </select>
+                </div>
+                
+                <input type="text" id="cpfAluno" placeholder="CPF do Aluno *" maxlength="14">
+                <input type="text" id="telefone" placeholder="Telefone">
+                <input type="text" id="endereco" placeholder="Endereço">
+                <input type="text" id="responsavel" placeholder="Responsável *">
+                <input type="text" id="cpfResponsavel" placeholder="CPF do Responsável *">
+                <input type="text" id="telResp" placeholder="Tel. Responsável">
+                <select id="modalidade"></select>
+                <select id="plano">
+                    <option>Básico</option>
+                    <option>Premium</option>
+                    <option>VIP</option>
+                </select>
+                <select id="statusAluno">
+                    <option>Ativo</option>
+                    <option>Trancado</option>
+                    <option>Cancelado</option>
+                    <option>Experimental</option>
+                </select>
+                <div class="info-matricula">
+                    <strong>💰 Valores Financeiros</strong>
+                    <div class="checkbox-label"><input type="checkbox" id="cobrarMatricula"><span>Cobrar matrícula inicial (R$)</span></div>
+                    <input type="number" id="valorMatricula" placeholder="Valor da Matrícula" step="0.01">
+                    <div class="divider"></div>
+                    <div class="checkbox-label"><input type="checkbox" id="cobrarRenovacao"><span>🔄 Renovação anual</span></div>
+                    <input type="number" id="valorRenovacao" placeholder="Valor da Renovação" step="0.01">
+                    <div class="radio-group" id="radioRenovacaoGroup"></div>
+                    <div class="divider"></div>
+                    <div class="checkbox-label"><input type="checkbox" id="cobrarMensalidade"><span>Cobrar mensalidade (R$)</span></div>
+                    <input type="number" id="mensalidade" placeholder="Valor da Mensalidade" step="0.01">
+                    <input type="number" id="vencimento" placeholder="Dia vencimento (1-31)" min="1" max="31">
+                    <div class="small">💡 Deixe em branco se não quiser cobrar</div>
+                </div>
+                <div id="historicoMatriculaInfo" class="small" style="display:none;"></div>
+                <div class="grid">
+                    <button class="btn" id="btnSalvarAluno">💾 Salvar</button>
+                    <button class="btn btn-outline" id="btnCancelarForm">⬅️ Voltar</button>
+                </div>
+                <button class="btn btn-danger" id="btnExcluirAluno" style="display:none;">🗑️ Excluir Aluno</button>
+            </div>
+        </div>
     </div>
 
     <div class="bottom-nav">
@@ -499,6 +572,58 @@ function salvarAulas() { localStorage.setItem('aulas', JSON.stringify(aulas)); }
 function salvarChecklist() { localStorage.setItem('checklist', JSON.stringify(checklist)); }
 function salvarGrupos() { localStorage.setItem('grupos', JSON.stringify(grupos)); }
 
+function popularSelectsData() {
+    // Popular dias (1 a 31)
+    const diaSelect = document.getElementById('nascimentoDia');
+    if(diaSelect) {
+        diaSelect.innerHTML = '<option value="">Dia</option>';
+        for(let i = 1; i <= 31; i++) {
+            diaSelect.innerHTML += `<option value="${i}">${i}</option>`;
+        }
+    }
+    
+    // Popular meses
+    const mesSelect = document.getElementById('nascimentoMes');
+    if(mesSelect) {
+        const meses = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+        mesSelect.innerHTML = '<option value="">Mês</option>';
+        for(let i = 0; i < meses.length; i++) {
+            mesSelect.innerHTML += `<option value="${i+1}">${meses[i]}</option>`;
+        }
+    }
+    
+    // Popular anos (1900 até ano atual)
+    const anoSelect = document.getElementById('nascimentoAno');
+    if(anoSelect) {
+        const anoAtual = new Date().getFullYear();
+        anoSelect.innerHTML = '<option value="">Ano</option>';
+        for(let i = anoAtual; i >= 1900; i--) {
+            anoSelect.innerHTML += `<option value="${i}">${i}</option>`;
+        }
+    }
+}
+
+function formatarDataParaSalvar() {
+    const dia = document.getElementById('nascimentoDia').value;
+    const mes = document.getElementById('nascimentoMes').value;
+    const ano = document.getElementById('nascimentoAno').value;
+    
+    if(dia && mes && ano) {
+        return `${ano}-${String(mes).padStart(2,'0')}-${String(dia).padStart(2,'0')}`;
+    }
+    return '';
+}
+
+function formatarDataParaEditar(data) {
+    if(!data) return;
+    const partes = data.split('-');
+    if(partes.length === 3) {
+        document.getElementById('nascimentoDia').value = parseInt(partes[2]);
+        document.getElementById('nascimentoMes').value = parseInt(partes[1]);
+        document.getElementById('nascimentoAno').value = parseInt(partes[0]);
+    }
+}
+
 function carregarDados() {
     alunos = JSON.parse(localStorage.getItem('alunos') || '[]');
     movimentacoes = JSON.parse(localStorage.getItem('movimentacoes') || '[]');
@@ -523,6 +648,8 @@ function carregarDados() {
         if (a.ultimaRenovacao === undefined) a.ultimaRenovacao = a.createdAt;
         if (!a.status) a.status = "Ativo";
         if (!a.cpfResponsavel) a.cpfResponsavel = "";
+        if (!a.dataNascimento) a.dataNascimento = "";
+        if (!a.cpfAluno) a.cpfAluno = "";
         return a;
     });
     salvarAlunos();
@@ -549,7 +676,7 @@ function sincronizarMensalidades(){ const hoje=new Date(), anoAtual=hoje.getFull
 
 function atualizarAtrasos(){ const hoje=hojeStr(); let alterado=false; for(let aluno of alunos){ for(let charge of aluno.charges){ if(charge.status==='pending' && charge.dueDate<hoje){ charge.status='overdue'; alterado=true; } } if(aluno.cobrarRenovacao && aluno.renovacaoPagaNoPeriodo){ const hojeDate=new Date(); const ultimaRenovDate=new Date(aluno.ultimaRenovacao); let reset=false; if(aluno.renovacaoTipo==='aniversario'){ const prox=new Date(ultimaRenovDate); prox.setFullYear(prox.getFullYear()+1); if(hojeDate>=prox) reset=true; } else if(aluno.renovacaoTipo==='janeiro'){ if(hojeDate.getFullYear()>ultimaRenovDate.getFullYear()) reset=true; } if(reset){ aluno.renovacaoPagaNoPeriodo=false; alterado=true; } } } if(alterado) salvarAlunos(); }
 
-function abrirModalPagamento(alunoId){ const aluno=alunos.find(a=>a.id===alunoId); if(!aluno) return; const charges=aluno.charges.filter(c=>c.status!=='paid').sort((a,b)=>a.dueDate.localeCompare(b.dueDate)); if(charges.length===0){ showToast('Sem pendências'); return; } const modal=document.createElement('div'); modal.className='modal-pagamento'; let html=`<div class="modal-pagamento-content"><h3>💰 Receber de ${aluno.nome}</h3><div id="chargesListModal">`; charges.forEach(c=>{ html+=`<div class="charge-item" data-charge-id="${c.id}"><input type="checkbox" class="charge-checkbox" data-charge-id="${c.id}" data-charge-value="${c.amount}"><div class="charge-info"><div><strong>${c.isRenovacao?'🔄 Renovação ':''}${getMesNome(c.mes)}/${c.ano}</strong> - ${formatarMoeda(c.amount)}</div><div class="small">Venc: ${c.dueDate}</div></div></div>`; }); html+=`</div><div class="modal-total">Total: <strong id="modalTotalSelecionado">R$ 0,00</strong></div><div class="grid"><button class="btn btn-success" id="confirmarPagamentoSelecionado">✅ Receber</button><button class="btn btn-outline" id="fecharModalPagamento">❌ Cancelar</button></div></div>`; modal.innerHTML=html; document.body.appendChild(modal); function atualizarTotal(){ let total=0; document.querySelectorAll('.charge-checkbox:checked').forEach(cb=>{ total+=parseFloat(cb.dataset.chargeValue); }); document.getElementById('modalTotalSelecionado').innerHTML=formatarMoeda(total); } document.querySelectorAll('.charge-checkbox').forEach(cb=>cb.addEventListener('change',atualizarTotal)); document.querySelectorAll('.charge-item').forEach(item=>{ item.addEventListener('click',(e)=>{ if(e.target.type!=='checkbox'){ let cb=item.querySelector('.charge-checkbox'); if(cb){ cb.checked=!cb.checked; atualizarTotal(); item.classList.toggle('selected',cb.checked); } } }); }); document.getElementById('confirmarPagamentoSelecionado').onclick=()=>{ let selecionados=document.querySelectorAll('.charge-checkbox:checked'), total=0, pagas=[]; selecionados.forEach(cb=>{ let charge=aluno.charges.find(c=>c.id==parseInt(cb.dataset.chargeId)); if(charge && charge.status!=='paid'){ total+=charge.amount; pagas.push(charge); } }); if(total===0) return; if(confirm(`Confirmar ${formatarMoeda(total)}?`)){ pagas.forEach(charge=>{ charge.status='paid'; charge.paidDate=hojeStr(); adicionarMovimentacao('entrada',charge.amount,`${charge.isRenovacao?'Renovação':'Mensalidade'} ${aluno.nome} - ${charge.dueDate}`,aluno.id,charge.id); }); salvarAlunos(); atualizarAtrasos(); renderTelasFinanceiras(); atualizarHome(); modal.remove(); showToast(`✅ ${formatarMoeda(total)} recebido!`); } }; document.getElementById('fecharModalPagamento').onclick=()=>modal.remove(); atualizarTotal(); }
+function abrirModalPagamento(alunoId){ const aluno=alunos.find(a=>a.id===alunoId); if(!aluno) return; const charges=aluno.charges.filter(c=>c.status!=='paid').sort((a,b)=>a.dueDate.localeCompare(b.dueDate)); if(charges.length===0){ showToast('Sem pendências'); return; } const modal=document.createElement('div'); modal.className='modal-pagamento'; let html=`<div class="modal-pagamento-content"><h3>💰 Receber de ${aluno.nome}</h3><div id="chargesListModal">`; charges.forEach(c=>{ html+=`<div class="charge-item" data-charge-id="${c.id}"><input type="checkbox" class="charge-checkbox" data-charge-id="${c.id}" data-charge-value="${c.amount}"><div class="charge-info"><div><strong>${c.isRenovacao?'🔄 Renovação ':''}${getMesNome(c.mes)}/${c.ano}</strong> - ${formatarMoeda(c.amount)}</div><div class="small">📅 Vencimento: ${c.dueDate}</div></div></div>`; }); html+=`</div><div class="modal-total">Total: <strong id="modalTotalSelecionado">R$ 0,00</strong></div><div class="grid"><button class="btn btn-success" id="confirmarPagamentoSelecionado">✅ Receber</button><button class="btn btn-outline" id="fecharModalPagamento">❌ Cancelar</button></div></div>`; modal.innerHTML=html; document.body.appendChild(modal); function atualizarTotal(){ let total=0; document.querySelectorAll('.charge-checkbox:checked').forEach(cb=>{ total+=parseFloat(cb.dataset.chargeValue); }); document.getElementById('modalTotalSelecionado').innerHTML=formatarMoeda(total); } document.querySelectorAll('.charge-checkbox').forEach(cb=>cb.addEventListener('change',atualizarTotal)); document.querySelectorAll('.charge-item').forEach(item=>{ item.addEventListener('click',(e)=>{ if(e.target.type!=='checkbox'){ let cb=item.querySelector('.charge-checkbox'); if(cb){ cb.checked=!cb.checked; atualizarTotal(); item.classList.toggle('selected',cb.checked); } } }); }); document.getElementById('confirmarPagamentoSelecionado').onclick=()=>{ let selecionados=document.querySelectorAll('.charge-checkbox:checked'), total=0, pagas=[]; selecionados.forEach(cb=>{ let charge=aluno.charges.find(c=>c.id==parseInt(cb.dataset.chargeId)); if(charge && charge.status!=='paid'){ total+=charge.amount; pagas.push(charge); } }); if(total===0) return; if(confirm(`Confirmar ${formatarMoeda(total)}?`)){ pagas.forEach(charge=>{ charge.status='paid'; charge.paidDate=hojeStr(); adicionarMovimentacao('entrada',charge.amount,`${charge.isRenovacao?'Renovação':'Mensalidade'} ${aluno.nome} - ${charge.dueDate}`,aluno.id,charge.id); }); salvarAlunos(); atualizarAtrasos(); renderTelasFinanceiras(); atualizarHome(); modal.remove(); showToast(`✅ ${formatarMoeda(total)} recebido!`); } }; document.getElementById('fecharModalPagamento').onclick=()=>modal.remove(); atualizarTotal(); }
 
 function renderInadimplentes() {
     const container = document.getElementById('listaPendentes');
@@ -592,14 +719,32 @@ function atualizarSelectModalidade(){ const select=document.getElementById('moda
 
 function renderGruposAlunos(){ const container=document.getElementById('gruposContainer'); container.innerHTML=''; grupos.forEach(grupo=>{ const count=alunos.filter(a=>a.modalidade===grupo).length; const card=document.createElement('div'); card.className=`grupo-card ${grupoSelecionado===grupo?'active':''}`; card.setAttribute('data-grupo',grupo); card.innerHTML=`<div class="grupo-nome">${grupo}</div><div class="grupo-count">${count}</div>`; card.onclick=(e)=>{ if(e.target.classList.contains('gear-icon')) return; grupoSelecionado=grupo; buscaAtual=''; document.getElementById('searchAluno').value=''; document.querySelectorAll('.grupo-card').forEach(c=>c.classList.remove('active')); card.classList.add('active'); atualizarListaAlunos(); document.getElementById('nenhumAlunoMsg').style.display='none'; }; container.appendChild(card); }); const gear=document.createElement('div'); gear.className='gear-icon'; gear.innerHTML='⚙️'; gear.onclick=(e)=>{ e.stopPropagation(); editarGrupos(); }; container.appendChild(gear); if(!grupoSelecionado && !buscaAtual){ document.getElementById('alunosListaContainer').innerHTML=''; document.getElementById('nenhumAlunoMsg').style.display='block'; } else atualizarListaAlunos(); }
 
-function atualizarListaAlunos(){ let filtrados=[]; if(buscaAtual) filtrados=alunos.filter(a=>a.nome.toLowerCase().includes(buscaAtual.toLowerCase())); else if(grupoSelecionado) filtrados=alunos.filter(a=>a.modalidade===grupoSelecionado); const container=document.getElementById('alunosListaContainer'); if(filtrados.length===0){ container.innerHTML=''; document.getElementById('nenhumAlunoMsg').style.display='block'; return; } document.getElementById('nenhumAlunoMsg').style.display='none'; container.innerHTML=''; filtrados.forEach(a=>{ const div=document.createElement('div'); div.className='item'; let info=`${a.nome} <span class="badge ${a.status==='Ativo'?'ok':'inativo'}">${a.status}</span>`; if(a.cobrarMatricula && a.valorMatricula>0) info+=` | Mat: ${formatarMoeda(a.valorMatricula)}`; if(a.cobrarMensalidade && a.mensalidade>0) info+=` | Mens: ${formatarMoeda(a.mensalidade)}`; div.innerHTML=`<b>${info}</b><div class="small">${a.modalidade} | Vence dia ${a.dueDay}</div><div class="small">CPF: ${a.cpfResponsavel||'-'}</div>`; div.onclick=()=>editarAluno(a.id); container.appendChild(div); }); }
+function atualizarListaAlunos(){ let filtrados=[]; if(buscaAtual) filtrados=alunos.filter(a=>a.nome.toLowerCase().includes(buscaAtual.toLowerCase())); else if(grupoSelecionado) filtrados=alunos.filter(a=>a.modalidade===grupoSelecionado); const container=document.getElementById('alunosListaContainer'); if(filtrados.length===0){ container.innerHTML=''; document.getElementById('nenhumAlunoMsg').style.display='block'; return; } document.getElementById('nenhumAlunoMsg').style.display='none'; container.innerHTML=''; filtrados.forEach(a=>{ const div=document.createElement('div'); div.className='item'; let info=`${a.nome} <span class="badge ${a.status==='Ativo'?'ok':'inativo'}">${a.status}</span>`; if(a.cobrarMatricula && a.valorMatricula>0) info+=` | Mat: ${formatarMoeda(a.valorMatricula)}`; if(a.cobrarMensalidade && a.mensalidade>0) info+=` | Mens: ${formatarMoeda(a.mensalidade)}`; div.innerHTML=`<b>${info}</b><div class="small">${a.modalidade} | Vence dia ${a.dueDay}</div><div class="small">📅 Nasc: ${a.dataNascimento || '-'} | CPF: ${a.cpfAluno || '-'}</div><div class="small">👤 Resp: ${a.responsavel} | CPF: ${a.cpfResponsavel||'-'}</div>`; div.onclick=()=>editarAluno(a.id); container.appendChild(div); }); }
 
-function editarAluno(id){ const a=alunos.find(x=>x.id===id); if(!a) return; document.getElementById('nome').value=a.nome; document.getElementById('telefone').value=a.telefone||''; document.getElementById('endereco').value=a.endereco||''; document.getElementById('responsavel').value=a.responsavel||''; document.getElementById('cpfResponsavel').value=a.cpfResponsavel||''; document.getElementById('telResp').value=a.telResp||''; document.getElementById('modalidade').value=a.modalidade; document.getElementById('plano').value=a.plano; document.getElementById('statusAluno').value=a.status; document.getElementById('cobrarMatricula').checked=a.cobrarMatricula; document.getElementById('cobrarMensalidade').checked=a.cobrarMensalidade; document.getElementById('cobrarRenovacao').checked=a.cobrarRenovacao; document.getElementById('valorMatricula').value=a.valorMatricula||''; document.getElementById('mensalidade').value=a.mensalidade||''; document.getElementById('valorRenovacao').value=a.valorRenovacao||''; document.getElementById('vencimento').value=a.dueDay||''; if(document.querySelector(`input[name="renovacaoTipo"][value="${a.renovacaoTipo}"]`)) document.querySelector(`input[name="renovacaoTipo"][value="${a.renovacaoTipo}"]`).checked=true; window.editId=id; document.getElementById('btnExcluirAluno').style.display='block'; mostrarPainel('viewAlunoForm'); }
+function editarAluno(id){ const a=alunos.find(x=>x.id===id); if(!a) return; document.getElementById('nome').value=a.nome; formatarDataParaEditar(a.dataNascimento); document.getElementById('cpfAluno').value=a.cpfAluno || ''; document.getElementById('telefone').value=a.telefone||''; document.getElementById('endereco').value=a.endereco||''; document.getElementById('responsavel').value=a.responsavel||''; document.getElementById('cpfResponsavel').value=a.cpfResponsavel||''; document.getElementById('telResp').value=a.telResp||''; document.getElementById('modalidade').value=a.modalidade; document.getElementById('plano').value=a.plano; document.getElementById('statusAluno').value=a.status; document.getElementById('cobrarMatricula').checked=a.cobrarMatricula; document.getElementById('cobrarMensalidade').checked=a.cobrarMensalidade; document.getElementById('cobrarRenovacao').checked=a.cobrarRenovacao; document.getElementById('valorMatricula').value=a.valorMatricula||''; document.getElementById('mensalidade').value=a.mensalidade||''; document.getElementById('valorRenovacao').value=a.valorRenovacao||''; document.getElementById('vencimento').value=a.dueDay||''; if(document.querySelector(`input[name="renovacaoTipo"][value="${a.renovacaoTipo}"]`)) document.querySelector(`input[name="renovacaoTipo"][value="${a.renovacaoTipo}"]`).checked=true; window.editId=id; document.getElementById('btnExcluirAluno').style.display='block'; mostrarPainel('viewAlunoForm'); }
 
-function salvarAlunoForm(){ const nome=document.getElementById('nome').value.trim(); const responsavel=document.getElementById('responsavel').value.trim(); const cpf=document.getElementById('cpfResponsavel').value.trim(); if(!nome||!responsavel||!cpf) return alert('Preencha nome, responsável e CPF'); const cobrarMatricula=document.getElementById('cobrarMatricula').checked; const cobrarMensalidade=document.getElementById('cobrarMensalidade').checked; const cobrarRenovacao=document.getElementById('cobrarRenovacao').checked; let dueDay=parseInt(document.getElementById('vencimento').value); if(isNaN(dueDay)) dueDay=10; let mensalidade=parseFloat(document.getElementById('mensalidade').value)||0; let valorMatricula=parseFloat(document.getElementById('valorMatricula').value)||0; let valorRenovacao=parseFloat(document.getElementById('valorRenovacao').value)||0; const renovacaoTipo=document.querySelector('input[name="renovacaoTipo"]:checked')?.value||'aniversario'; const modalidade=document.getElementById('modalidade').value; const statusAluno=document.getElementById('statusAluno').value; const agora=hojeStr(); if(window.editId){ const idx=alunos.findIndex(a=>a.id===window.editId); if(idx!==-1){ const antigo=alunos[idx]; const novo={...antigo, nome, telefone:document.getElementById('telefone').value, endereco:document.getElementById('endereco').value, responsavel, cpfResponsavel:cpf, telResp:document.getElementById('telResp').value, modalidade, plano:document.getElementById('plano').value, mensalidade, dueDay, valorMatricula, cobrarMatricula, cobrarMensalidade, cobrarRenovacao, valorRenovacao, renovacaoTipo, status:statusAluno}; if(cobrarMatricula && valorMatricula>0 && !antigo.matriculaPaga){ novo.matriculaPaga=true; adicionarMovimentacao('entrada',valorMatricula,`Matrícula ${nome}`,novo.id); } else novo.matriculaPaga=antigo.matriculaPaga; for(let ch of novo.charges) if(ch.status!=='paid' && !ch.isRenovacao) ch.amount=mensalidade; alunos[idx]=novo; showToast(`✅ ${nome} atualizado!`); } cancelarForm(); mostrarPainel('viewAlunos'); } else { const novo={ id:Date.now(), nome, telefone:document.getElementById('telefone').value, endereco:document.getElementById('endereco').value, responsavel, cpfResponsavel:cpf, telResp:document.getElementById('telResp').value, modalidade, plano:document.getElementById('plano').value, mensalidade, dueDay, valorMatricula, cobrarMatricula, cobrarMensalidade, cobrarRenovacao, valorRenovacao, renovacaoTipo, matriculaPaga:false, status:statusAluno, charges:[], createdAt:agora, ultimaRenovacao:agora, renovacaoPagaNoPeriodo:false }; if(cobrarMatricula && valorMatricula>0){ novo.matriculaPaga=true; adicionarMovimentacao('entrada',valorMatricula,`Matrícula ${nome}`,novo.id); showToast(`✅ ${nome} cadastrado! Matrícula: ${formatarMoeda(valorMatricula)}`); } else showToast(`✅ ${nome} cadastrado!`); alunos.push(novo); limparFormulario(); } salvarAlunos(); sincronizarMensalidades(); atualizarAtrasos(); renderGruposAlunos(); atualizarHome(); renderTelasFinanceiras(); if(!window.editId) mostrarPainel('viewAlunoForm'); }
+function salvarAlunoForm(){ const nome=document.getElementById('nome').value.trim(); const dataNascimento=formatarDataParaSalvar(); const cpfAluno=document.getElementById('cpfAluno').value.trim(); const responsavel=document.getElementById('responsavel').value.trim(); const cpf=document.getElementById('cpfResponsavel').value.trim();
+    if(!nome) return alert('Preencha o nome do aluno');
+    if(!dataNascimento) return alert('Preencha a Data de Nascimento completa (Dia, Mês e Ano)');
+    if(!cpfAluno) return alert('Preencha o CPF do aluno');
+    if(!responsavel) return alert('Preencha o nome do responsável');
+    if(!cpf) return alert('Preencha o CPF do responsável');
+    const cobrarMatricula=document.getElementById('cobrarMatricula').checked;
+    const cobrarMensalidade=document.getElementById('cobrarMensalidade').checked;
+    const cobrarRenovacao=document.getElementById('cobrarRenovacao').checked;
+    let dueDay=parseInt(document.getElementById('vencimento').value);
+    if(isNaN(dueDay)) dueDay=10;
+    let mensalidade=parseFloat(document.getElementById('mensalidade').value)||0;
+    let valorMatricula=parseFloat(document.getElementById('valorMatricula').value)||0;
+    let valorRenovacao=parseFloat(document.getElementById('valorRenovacao').value)||0;
+    const renovacaoTipo=document.querySelector('input[name="renovacaoTipo"]:checked')?.value||'aniversario';
+    const modalidade=document.getElementById('modalidade').value;
+    const statusAluno=document.getElementById('statusAluno').value;
+    const agora=hojeStr();
+    if(window.editId){ const idx=alunos.findIndex(a=>a.id===window.editId); if(idx!==-1){ const antigo=alunos[idx]; const novo={...antigo, nome, dataNascimento, cpfAluno, telefone:document.getElementById('telefone').value, endereco:document.getElementById('endereco').value, responsavel, cpfResponsavel:cpf, telResp:document.getElementById('telResp').value, modalidade, plano:document.getElementById('plano').value, mensalidade, dueDay, valorMatricula, cobrarMatricula, cobrarMensalidade, cobrarRenovacao, valorRenovacao, renovacaoTipo, status:statusAluno}; if(cobrarMatricula && valorMatricula>0 && !antigo.matriculaPaga){ novo.matriculaPaga=true; adicionarMovimentacao('entrada',valorMatricula,`Matrícula ${nome}`,novo.id); } else novo.matriculaPaga=antigo.matriculaPaga; for(let ch of novo.charges) if(ch.status!=='paid' && !ch.isRenovacao) ch.amount=mensalidade; alunos[idx]=novo; showToast(`✅ ${nome} atualizado!`); } cancelarForm(); mostrarPainel('viewAlunos'); } else { const novo={ id:Date.now(), nome, dataNascimento, cpfAluno, telefone:document.getElementById('telefone').value, endereco:document.getElementById('endereco').value, responsavel, cpfResponsavel:cpf, telResp:document.getElementById('telResp').value, modalidade, plano:document.getElementById('plano').value, mensalidade, dueDay, valorMatricula, cobrarMatricula, cobrarMensalidade, cobrarRenovacao, valorRenovacao, renovacaoTipo, matriculaPaga:false, status:statusAluno, charges:[], createdAt:agora, ultimaRenovacao:agora, renovacaoPagaNoPeriodo:false }; if(cobrarMatricula && valorMatricula>0){ novo.matriculaPaga=true; adicionarMovimentacao('entrada',valorMatricula,`Matrícula ${nome}`,novo.id); showToast(`✅ ${nome} cadastrado! Matrícula: ${formatarMoeda(valorMatricula)}`); } else showToast(`✅ ${nome} cadastrado!`); alunos.push(novo); limparFormulario(); } salvarAlunos(); sincronizarMensalidades(); atualizarAtrasos(); renderGruposAlunos(); atualizarHome(); renderTelasFinanceiras(); if(!window.editId) mostrarPainel('viewAlunoForm'); }
 
 function cancelarForm(){ window.editId=null; document.getElementById('btnExcluirAluno').style.display='none'; document.getElementById('historicoMatriculaInfo').style.display='none'; limparFormulario(); mostrarPainel('viewAlunos'); }
-function limparFormulario(){ document.getElementById('nome').value=''; document.getElementById('telefone').value=''; document.getElementById('endereco').value=''; document.getElementById('responsavel').value=''; document.getElementById('cpfResponsavel').value=''; document.getElementById('telResp').value=''; document.getElementById('valorMatricula').value=''; document.getElementById('mensalidade').value=''; document.getElementById('valorRenovacao').value=''; document.getElementById('vencimento').value=''; document.getElementById('cobrarMatricula').checked=false; document.getElementById('cobrarMensalidade').checked=false; document.getElementById('cobrarRenovacao').checked=false; if(grupos.length) document.getElementById('modalidade').value=grupos[0]; document.getElementById('plano').value='Básico'; document.getElementById('statusAluno').value='Ativo'; }
+function limparFormulario(){ document.getElementById('nome').value=''; document.getElementById('nascimentoDia').value=''; document.getElementById('nascimentoMes').value=''; document.getElementById('nascimentoAno').value=''; document.getElementById('cpfAluno').value=''; document.getElementById('telefone').value=''; document.getElementById('endereco').value=''; document.getElementById('responsavel').value=''; document.getElementById('cpfResponsavel').value=''; document.getElementById('telResp').value=''; document.getElementById('valorMatricula').value=''; document.getElementById('mensalidade').value=''; document.getElementById('valorRenovacao').value=''; document.getElementById('vencimento').value=''; document.getElementById('cobrarMatricula').checked=false; document.getElementById('cobrarMensalidade').checked=false; document.getElementById('cobrarRenovacao').checked=false; if(grupos.length) document.getElementById('modalidade').value=grupos[0]; document.getElementById('plano').value='Básico'; document.getElementById('statusAluno').value='Ativo'; }
 function excluirAluno(id){ if(confirm('Excluir aluno?')){ alunos=alunos.filter(a=>a.id!==id); salvarAlunos(); sincronizarMensalidades(); atualizarAtrasos(); grupoSelecionado=null; buscaAtual=''; renderGruposAlunos(); renderTelasFinanceiras(); atualizarHome(); if(window.editId===id) cancelarForm(); showToast('✅ Aluno removido'); } }
 
 function renderTelasFinanceiras(){ renderReceberHoje(); renderInadimplentes(); atualizarHome(); }
@@ -629,6 +774,7 @@ function mostrarPainel(viewId){ document.querySelectorAll('.view-pane').forEach(
 
 function init(){ 
     carregarDados(); 
+    popularSelectsData();
     sincronizarMensalidades(); 
     atualizarAtrasos(); 
     atualizarSelectModalidade(); 
