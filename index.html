@@ -6,6 +6,7 @@
     <title>Fluxo Escolar · Gestão Escolar</title>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <style>
         * {
             margin: 0;
@@ -384,15 +385,76 @@
             margin-bottom: 0;
         }
 
-        .mov-item {
-            background: #1e2132;
-            border-radius: 12px;
-            padding: 10px;
-            margin-bottom: 8px;
+        /* Estilos para o relatório PDF */
+        .relatorio-pdf {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            padding: 20px;
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            color: #333;
         }
-        .mov-buttons {
+        .relatorio-pdf h1 {
+            color: #6c5ce7;
+            text-align: center;
+            margin-bottom: 10px;
+        }
+        .relatorio-pdf h2 {
+            color: #555;
+            border-bottom: 2px solid #6c5ce7;
+            padding-bottom: 5px;
+            margin-top: 20px;
+        }
+        .relatorio-pdf .header-info {
+            text-align: center;
+            margin-bottom: 20px;
+            color: #666;
+        }
+        .relatorio-pdf table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+        .relatorio-pdf th, .relatorio-pdf td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        .relatorio-pdf th {
+            background: #6c5ce7;
+            color: white;
+        }
+        .relatorio-pdf .total {
+            font-weight: bold;
+            font-size: 18px;
+            margin-top: 15px;
+            text-align: right;
+        }
+        .relatorio-pdf .footer {
+            text-align: center;
+            margin-top: 30px;
+            font-size: 12px;
+            color: #999;
+        }
+        .badge-pdf-pago {
+            color: green;
+            font-weight: bold;
+        }
+        .badge-pdf-pendente {
+            color: orange;
+            font-weight: bold;
+        }
+        .badge-pdf-atrasado {
+            color: red;
+            font-weight: bold;
+        }
+        .mes-ano-select {
             display: flex;
-            gap: 8px;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        .mes-ano-select select {
+            flex: 1;
         }
     </style>
 </head>
@@ -679,7 +741,6 @@ function calcularSaldoCofre() { return movimentacoes.reduce((t,m)=> m.tipo==='en
 function atualizarMovimentacaoMatricula(alunoId, valorAntigo, valorNovo, nome) {
     if (valorAntigo === valorNovo) return;
     
-    // Encontra a movimentação da matrícula
     const mov = movimentacoes.find(m => 
         m.alunoId === alunoId && 
         m.desc && m.desc.includes('Matrícula') &&
@@ -687,22 +748,18 @@ function atualizarMovimentacaoMatricula(alunoId, valorAntigo, valorNovo, nome) {
     );
     
     if (mov) {
-        // Atualiza o valor da movimentação existente
-        const diferenca = valorNovo - valorAntigo;
         mov.valor = valorNovo;
         mov.desc = `Matrícula ${nome}`;
         salvarMovimentacoes();
         showToast(`💰 Matrícula atualizada: ${formatarMoeda(valorAntigo)} → ${formatarMoeda(valorNovo)}`);
     } else if (valorNovo > 0 && !mov) {
-        // Se não encontrou movimentação, cria uma nova
         adicionarMovimentacao('entrada', valorNovo, `Matrícula ${nome}`, alunoId);
     }
 }
 
-function atualizarMovimentacaoMensalidade(alunoId, valorAntigo, valorNovo, nome, mesReferencia) {
+function atualizarMovimentacaoMensalidade(alunoId, valorAntigo, valorNovo, nome) {
     if (valorAntigo === valorNovo) return;
     
-    // Encontra a movimentação da mensalidade (mais recente)
     const mov = movimentacoes.find(m => 
         m.alunoId === alunoId && 
         m.desc && m.desc.includes('Mensalidade') &&
@@ -710,7 +767,6 @@ function atualizarMovimentacaoMensalidade(alunoId, valorAntigo, valorNovo, nome,
     );
     
     if (mov) {
-        // Atualiza o valor da movimentação existente
         mov.valor = valorNovo;
         mov.desc = `Mensalidade ${nome}`;
         salvarMovimentacoes();
@@ -721,13 +777,195 @@ function atualizarMovimentacaoMensalidade(alunoId, valorAntigo, valorNovo, nome,
 function backupDados() { const data={alunos,movimentacoes,tarefas,aulas,checklist,grupos}; const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=`fluxo_backup_${new Date().toISOString().slice(0,19)}.json`; a.click(); showToast('✅ Backup gerado!'); }
 function restaurarBackup(file) { const reader=new FileReader(); reader.onload=e=>{ try{ const data=JSON.parse(e.target.result); if(data.alunos) alunos=data.alunos; if(data.movimentacoes) movimentacoes=data.movimentacoes; if(data.tarefas) tarefas=data.tarefas; if(data.aulas) aulas=data.aulas; if(data.checklist) checklist=data.checklist; if(data.grupos) grupos=data.grupos; salvarAlunos(); salvarMovimentacoes(); salvarTarefas(); salvarAulas(); salvarChecklist(); salvarGrupos(); sincronizarMensalidades(); atualizarAtrasos(); renderGruposAlunos(); atualizarHome(); renderTelasFinanceiras(); showToast('✅ Backup restaurado!'); }catch(e){ showToast('❌ Arquivo inválido'); } }; reader.readAsText(file); }
 
+// ========== RELATÓRIO MENSAL EM PDF ==========
+function abrirModalRelatorio() {
+    const modal = document.createElement('div');
+    modal.className = 'modal';
+    
+    const meses = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+    const anoAtual = new Date().getFullYear();
+    let optionsMeses = '';
+    let optionsAnos = '';
+    
+    for(let i = 0; i < meses.length; i++) {
+        optionsMeses += `<option value="${i+1}">${meses[i]}</option>`;
+    }
+    
+    for(let i = anoAtual; i >= 2020; i--) {
+        optionsAnos += `<option value="${i}">${i}</option>`;
+    }
+    
+    modal.innerHTML = `
+        <div class="modal-content">
+            <h3>📊 RELATÓRIO MENSAL</h3>
+            <div class="mes-ano-select">
+                <select id="relatorioMes">${optionsMeses}</select>
+                <select id="relatorioAno">${optionsAnos}</select>
+            </div>
+            <div class="grid">
+                <button class="btn btn-success" id="btnGerarRelatorio">🔍 GERAR PDF</button>
+                <button class="btn btn-outline" id="btnFecharRelatorio">❌ Fechar</button>
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(modal);
+    
+    document.getElementById('btnGerarRelatorio').onclick = () => {
+        const mes = parseInt(document.getElementById('relatorioMes').value);
+        const ano = parseInt(document.getElementById('relatorioAno').value);
+        gerarRelatorioPDF(mes, ano);
+        modal.remove();
+    };
+    
+    document.getElementById('btnFecharRelatorio').onclick = () => modal.remove();
+}
+
+function gerarRelatorioPDF(mes, ano) {
+    const meses = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+    const nomeMes = meses[mes - 1];
+    
+    // Calcular dados do relatório
+    let totalAlunos = alunos.length;
+    let totalMensalidades = 0;
+    let totalArrecadado = 0;
+    let totalInadimplencia = 0;
+    let alunosInadimplentes = [];
+    let alunosPagos = [];
+    let alunosPendentes = [];
+    
+    for(let aluno of alunos) {
+        if(aluno.cobrarMensalidade && aluno.mensalidade > 0) {
+            totalMensalidades += aluno.mensalidade;
+            
+            const charge = aluno.charges.find(c => c.ano === ano && c.mes === mes && !c.isRenovacao);
+            if(charge) {
+                if(charge.status === 'paid') {
+                    totalArrecadado += aluno.mensalidade;
+                    alunosPagos.push({nome: aluno.nome, valor: aluno.mensalidade});
+                } else if(charge.status === 'overdue') {
+                    totalInadimplencia += aluno.mensalidade;
+                    alunosInadimplentes.push({nome: aluno.nome, valor: aluno.mensalidade, tempo: calcularTempoAtraso(charge.dueDate)});
+                } else {
+                    alunosPendentes.push({nome: aluno.nome, valor: aluno.mensalidade});
+                }
+            } else {
+                alunosPendentes.push({nome: aluno.nome, valor: aluno.mensalidade});
+            }
+        }
+    }
+    
+    // Movimentações do período
+    const movPeriodo = movimentacoes.filter(m => {
+        const dataMov = new Date(m.data);
+        return dataMov.getMonth() + 1 === mes && dataMov.getFullYear() === ano;
+    });
+    
+    const totalEntradas = movPeriodo.filter(m => m.tipo === 'entrada').reduce((s, m) => s + m.valor, 0);
+    const totalSaidas = movPeriodo.filter(m => m.tipo === 'saida').reduce((s, m) => s + m.valor, 0);
+    const saldoCofre = calcularSaldoCofre();
+    
+    // Criar HTML do relatório
+    const relatorioHTML = `
+        <div class="relatorio-pdf" id="relatorioParaPDF">
+            <h1>📋 FLUXO ESCOLAR</h1>
+            <div class="header-info">
+                <strong>RELATÓRIO MENSAL - ${nomeMes}/${ano}</strong><br>
+                Gerado em: ${new Date().toLocaleString('pt-BR')}
+            </div>
+            
+            <h2>📊 RESUMO FINANCEIRO</h2>
+            <table>
+                <tr><th>Descrição</th><th>Valor</th></tr>
+                <tr><td>Total de Alunos</td><td>${totalAlunos}</td></tr>
+                <tr><td>Total de Mensalidades</td><td>${formatarMoeda(totalMensalidades)}</td></tr>
+                <tr><td>Total Arrecadado</td><td style="color:green">${formatarMoeda(totalArrecadado)}</td></tr>
+                <tr><td>Total Inadimplência</td><td style="color:red">${formatarMoeda(totalInadimplencia)}</td></tr>
+                <tr><td>Total Entradas (mês)</td><td style="color:green">${formatarMoeda(totalEntradas)}</td></tr>
+                <tr><td>Total Saídas (mês)</td><td style="color:red">${formatarMoeda(totalSaidas)}</td></tr>
+                <tr><td><strong>Saldo em Caixa</strong></td><td><strong>${formatarMoeda(saldoCofre)}</strong></td></tr>
+            </table>
+            
+            <h2>✅ ALUNOS COM PAGAMENTO EM DIA (${alunosPagos.length})</h2>
+            <table>
+                <tr><th>Aluno</th><th>Valor</th></tr>
+                ${alunosPagos.map(a => `<tr><td>${a.nome}</td><td>${formatarMoeda(a.valor)}</td></tr>`).join('') || '<tr><td colspan="2">Nenhum aluno</td></tr>'}
+            </table>
+            
+            <h2>⚠️ ALUNOS PENDENTES (${alunosPendentes.length})</h2>
+            <table>
+                <tr><th>Aluno</th><th>Valor</th></tr>
+                ${alunosPendentes.map(a => `<tr><td>${a.nome}</td><td>${formatarMoeda(a.valor)}</td></tr>`).join('') || '<tr><td colspan="2">Nenhum aluno</td></tr>'}
+            </table>
+            
+            <h2>🔴 ALUNOS INADIMPLENTES (${alunosInadimplentes.length})</h2>
+            <table>
+                <tr><th>Aluno</th><th>Valor</th><th>Tempo de Atraso</th></tr>
+                ${alunosInadimplentes.map(a => `<tr><td>${a.nome}</td><td>${formatarMoeda(a.valor)}</td><td>${a.tempo}</td></tr>`).join('') || '<tr><td colspan="3">Nenhum aluno inadimplente</td></tr>'}
+            </table>
+            
+            <h2>💰 MOVIMENTAÇÕES DO MÊS</h2>
+            <table>
+                <tr><th>Data</th><th>Descrição</th><th>Valor</th></tr>
+                ${movPeriodo.sort((a,b) => b.data.localeCompare(a.data)).map(m => `<tr><td>${m.data}</td><td>${m.desc}</td><td style="color:${m.tipo === 'entrada' ? 'green' : 'red'}">${m.tipo === 'entrada' ? '+' : '-'} ${formatarMoeda(m.valor)}</td></tr>`).join('') || '<tr><td colspan="3">Nenhuma movimentação no período</td></tr>'}
+            </table>
+            
+            <div class="total">
+                Total de Alunos Ativos: ${alunos.filter(a => a.status === 'Ativo').length}
+            </div>
+            
+            <div class="footer">
+                Relatório gerado pelo sistema Fluxo Escolar
+            </div>
+        </div>
+    `;
+    
+    const tempDiv = document.createElement('div');
+    tempDiv.style.position = 'absolute';
+    tempDiv.style.left = '-9999px';
+    tempDiv.style.top = '-9999px';
+    tempDiv.innerHTML = relatorioHTML;
+    document.body.appendChild(tempDiv);
+    
+    const element = document.getElementById('relatorioParaPDF');
+    
+    const opt = {
+        margin: [0.5, 0.5, 0.5, 0.5],
+        filename: `relatorio_${nomeMes}_${ano}.pdf`,
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { scale: 2, letterRendering: true },
+        jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' }
+    };
+    
+    html2pdf().set(opt).from(element).save().then(() => {
+        document.body.removeChild(tempDiv);
+        showToast('✅ Relatório PDF gerado com sucesso!');
+    }).catch(() => {
+        document.body.removeChild(tempDiv);
+        showToast('❌ Erro ao gerar PDF');
+    });
+}
+
 function abrirModalConfig() { 
     const modal=document.createElement('div'); 
     modal.className='modal'; 
-    modal.innerHTML=`<div class="modal-content"><h3>⚙️ Configurações</h3><div class="grid"><button class="btn-small btn-success" id="modalBackupBtn">📤 Backup</button><button class="btn-small btn-outline" id="modalRestoreBtn">📥 Restaurar</button></div><div style="margin-top:15px;"><button class="btn-small btn-outline" id="fecharModalConfig">Fechar</button></div></div>`; 
+    modal.innerHTML=`
+        <div class="modal-content">
+            <h3>⚙️ CONFIGURAÇÕES</h3>
+            <div class="grid">
+                <button class="btn-small btn-success" id="modalBackupBtn">📤 Backup</button>
+                <button class="btn-small btn-outline" id="modalRestoreBtn">📥 Restaurar</button>
+            </div>
+            <div class="divider"></div>
+            <button class="btn-small btn-warning" id="modalRelatorioBtn" style="background:var(--warn); color:#000; width:100%; margin:10px 0;">📊 RELATÓRIO MENSAL</button>
+            <div class="divider"></div>
+            <button class="btn-small btn-outline" id="fecharModalConfig">Fechar</button>
+        </div>
+    `; 
     document.body.appendChild(modal); 
     document.getElementById('modalBackupBtn').onclick=()=>{ backupDados(); modal.remove(); }; 
-    document.getElementById('modalRestoreBtn').onclick=()=>{ const input=document.createElement('input'); input.type='file'; input.accept='application/json'; input.onchange=e=>{ if(e.target.files[0]) restaurarBackup(e.target.files[0]); modal.remove(); }; input.click(); }; 
+    document.getElementById('modalRestoreBtn').onclick=()=>{ const input=document.createElement('input'); input.type='file'; input.accept='application/json'; input.onchange=e=>{ if(e.target.files[0]) restaurarBackup(e.target.files[0]); modal.remove(); }; input.click(); };
+    document.getElementById('modalRelatorioBtn').onclick=()=>{ modal.remove(); abrirModalRelatorio(); };
     document.getElementById('fecharModalConfig').onclick=()=>modal.remove(); 
 }
 
@@ -817,19 +1055,16 @@ function salvarAlunoForm(){
         if(idx!==-1){ 
             const antigo=alunos[idx]; 
             
-            // Verifica se a matrícula mudou e atualiza o histórico
             if (antigo.cobrarMatricula && antigo.matriculaPaga && antigo.valorMatricula !== valorMatricula) {
                 atualizarMovimentacaoMatricula(antigo.id, antigo.valorMatricula, valorMatricula, nome);
             }
             
-            // Verifica se a mensalidade mudou
             if (antigo.cobrarMensalidade && antigo.mensalidade !== mensalidade && antigo.mensalidade > 0) {
                 atualizarMovimentacaoMensalidade(antigo.id, antigo.mensalidade, mensalidade, nome);
             }
             
             const novo={...antigo, nome, dataNascimento, cpfAluno, telefone:document.getElementById('telefone').value, endereco:document.getElementById('endereco').value, responsavel, cpfResponsavel:cpf, telResp:document.getElementById('telResp').value, modalidade, plano:document.getElementById('plano').value, mensalidade, dueDay, valorMatricula, cobrarMatricula, cobrarMensalidade, cobrarRenovacao, valorRenovacao, renovacaoTipo, status:statusAluno}; 
             
-            // Só adiciona movimentação se a matrícula NUNCA foi paga antes
             if(cobrarMatricula && valorMatricula>0 && !antigo.matriculaPaga){ 
                 novo.matriculaPaga=true; 
                 adicionarMovimentacao('entrada',valorMatricula,`Matrícula ${nome}`,novo.id); 
