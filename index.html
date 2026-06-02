@@ -6,7 +6,6 @@
     <title>Fluxo Escolar · Gestão Escolar</title>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <style>
         * {
             margin: 0;
@@ -84,6 +83,8 @@
         .btn-danger:hover { background: #e8414f; }
         .btn-success { background: var(--ok); color: #000; }
         .btn-success:hover { background: #26c46a; }
+        .btn-warning { background: var(--warn); color: #000; }
+        .btn-warning:hover { background: #e69500; }
 
         .container { padding: 20px; max-width: 700px; margin: 0 auto; }
         .hidden { display: none !important; }
@@ -385,7 +386,7 @@
             margin-bottom: 0;
         }
 
-        /* Estilos para o relatório PDF */
+        /* Estilos para o relatório PDF - VERSÃO CORRIGIDA */
         .relatorio-pdf {
             font-family: 'Segoe UI', Arial, sans-serif;
             padding: 20px;
@@ -435,26 +436,6 @@
             margin-top: 30px;
             font-size: 12px;
             color: #999;
-        }
-        .badge-pdf-pago {
-            color: green;
-            font-weight: bold;
-        }
-        .badge-pdf-pendente {
-            color: orange;
-            font-weight: bold;
-        }
-        .badge-pdf-atrasado {
-            color: red;
-            font-weight: bold;
-        }
-        .mes-ano-select {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 15px;
-        }
-        .mes-ano-select select {
-            flex: 1;
         }
     </style>
 </head>
@@ -774,58 +755,63 @@ function atualizarMovimentacaoMensalidade(alunoId, valorAntigo, valorNovo, nome)
     }
 }
 
-function backupDados() { const data={alunos,movimentacoes,tarefas,aulas,checklist,grupos}; const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=`fluxo_backup_${new Date().toISOString().slice(0,19)}.json`; a.click(); showToast('✅ Backup gerado!'); }
-function restaurarBackup(file) { const reader=new FileReader(); reader.onload=e=>{ try{ const data=JSON.parse(e.target.result); if(data.alunos) alunos=data.alunos; if(data.movimentacoes) movimentacoes=data.movimentacoes; if(data.tarefas) tarefas=data.tarefas; if(data.aulas) aulas=data.aulas; if(data.checklist) checklist=data.checklist; if(data.grupos) grupos=data.grupos; salvarAlunos(); salvarMovimentacoes(); salvarTarefas(); salvarAulas(); salvarChecklist(); salvarGrupos(); sincronizarMensalidades(); atualizarAtrasos(); renderGruposAlunos(); atualizarHome(); renderTelasFinanceiras(); showToast('✅ Backup restaurado!'); }catch(e){ showToast('❌ Arquivo inválido'); } }; reader.readAsText(file); }
-
-// ========== RELATÓRIO MENSAL EM PDF ==========
-function abrirModalRelatorio() {
-    const modal = document.createElement('div');
-    modal.className = 'modal';
-    
-    const meses = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
-    const anoAtual = new Date().getFullYear();
-    let optionsMeses = '';
-    let optionsAnos = '';
-    
-    for(let i = 0; i < meses.length; i++) {
-        optionsMeses += `<option value="${i+1}">${meses[i]}</option>`;
-    }
-    
-    for(let i = anoAtual; i >= 2020; i--) {
-        optionsAnos += `<option value="${i}">${i}</option>`;
-    }
-    
-    modal.innerHTML = `
-        <div class="modal-content">
-            <h3>📊 RELATÓRIO MENSAL</h3>
-            <div class="mes-ano-select">
-                <select id="relatorioMes">${optionsMeses}</select>
-                <select id="relatorioAno">${optionsAnos}</select>
-            </div>
-            <div class="grid">
-                <button class="btn btn-success" id="btnGerarRelatorio">🔍 GERAR PDF</button>
-                <button class="btn btn-outline" id="btnFecharRelatorio">❌ Fechar</button>
-            </div>
-        </div>
-    `;
-    
-    document.body.appendChild(modal);
-    
-    document.getElementById('btnGerarRelatorio').onclick = () => {
-        const mes = parseInt(document.getElementById('relatorioMes').value);
-        const ano = parseInt(document.getElementById('relatorioAno').value);
-        gerarRelatorioPDF(mes, ano);
-        modal.remove();
+// ========== BACKUP CORRIGIDO (FUNCIONA NO APK) ==========
+function backupDados() { 
+    const data = {
+        alunos: alunos,
+        movimentacoes: movimentacoes,
+        tarefas: tarefas,
+        aulas: aulas,
+        checklist: checklist,
+        grupos: grupos
     };
     
-    document.getElementById('btnFecharRelatorio').onclick = () => modal.remove();
+    const dadosString = JSON.stringify(data, null, 2);
+    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(dadosString);
+    const downloadAnchorNode = document.createElement('a');
+    downloadAnchorNode.setAttribute("href", dataStr);
+    downloadAnchorNode.setAttribute("download", `fluxo_backup_${new Date().toISOString().slice(0,19)}.json`);
+    document.body.appendChild(downloadAnchorNode);
+    downloadAnchorNode.click();
+    downloadAnchorNode.remove();
+    showToast('✅ Backup gerado! Verifique a pasta Downloads');
 }
 
-function gerarRelatorioPDF(mes, ano) {
+function restaurarBackup(file) { 
+    const reader = new FileReader(); 
+    reader.onload = e => { 
+        try { 
+            const data = JSON.parse(e.target.result); 
+            if(data.alunos) alunos = data.alunos; 
+            if(data.movimentacoes) movimentacoes = data.movimentacoes; 
+            if(data.tarefas) tarefas = data.tarefas; 
+            if(data.aulas) aulas = data.aulas; 
+            if(data.checklist) checklist = data.checklist; 
+            if(data.grupos) grupos = data.grupos; 
+            salvarAlunos(); 
+            salvarMovimentacoes(); 
+            salvarTarefas(); 
+            salvarAulas(); 
+            salvarChecklist(); 
+            salvarGrupos(); 
+            sincronizarMensalidades(); 
+            atualizarAtrasos(); 
+            renderGruposAlunos(); 
+            atualizarHome(); 
+            renderTelasFinanceiras(); 
+            showToast('✅ Backup restaurado!'); 
+        } catch(e) { 
+            showToast('❌ Arquivo inválido'); 
+        } 
+    }; 
+    reader.readAsText(file); 
+}
+
+// ========== RELATÓRIO PDF CORRIGIDO (FUNCIONA NO APK - USA PRINT) ==========
+function criarConteudoRelatorio(mes, ano) {
     const meses = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
     const nomeMes = meses[mes - 1];
     
-    // Calcular dados do relatório
     let totalAlunos = alunos.length;
     let totalMensalidades = 0;
     let totalArrecadado = 0;
@@ -855,7 +841,6 @@ function gerarRelatorioPDF(mes, ano) {
         }
     }
     
-    // Movimentações do período
     const movPeriodo = movimentacoes.filter(m => {
         const dataMov = new Date(m.data);
         return dataMov.getMonth() + 1 === mes && dataMov.getFullYear() === ano;
@@ -865,9 +850,28 @@ function gerarRelatorioPDF(mes, ano) {
     const totalSaidas = movPeriodo.filter(m => m.tipo === 'saida').reduce((s, m) => s + m.valor, 0);
     const saldoCofre = calcularSaldoCofre();
     
-    // Criar HTML do relatório
-    const relatorioHTML = `
-        <div class="relatorio-pdf" id="relatorioParaPDF">
+    return `
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset="UTF-8">
+            <title>Relatório ${nomeMes}/${ano}</title>
+            <style>
+                body { font-family: 'Segoe UI', Arial, sans-serif; padding: 20px; max-width: 800px; margin: 0 auto; background: white; color: #333; }
+                h1 { color: #6c5ce7; text-align: center; margin-bottom: 10px; }
+                h2 { color: #555; border-bottom: 2px solid #6c5ce7; padding-bottom: 5px; margin-top: 20px; }
+                .header-info { text-align: center; margin-bottom: 20px; color: #666; }
+                table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+                th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+                th { background: #6c5ce7; color: white; }
+                .total { font-weight: bold; font-size: 18px; margin-top: 15px; text-align: right; }
+                .footer { text-align: center; margin-top: 30px; font-size: 12px; color: #999; }
+                @media print {
+                    body { margin: 0; padding: 15px; }
+                }
+            </style>
+        </head>
+        <body>
             <h1>📋 FLUXO ESCOLAR</h1>
             <div class="header-info">
                 <strong>RELATÓRIO MENSAL - ${nomeMes}/${ano}</strong><br>
@@ -917,33 +921,62 @@ function gerarRelatorioPDF(mes, ano) {
             <div class="footer">
                 Relatório gerado pelo sistema Fluxo Escolar
             </div>
+        </body>
+        </html>
+    `;
+}
+
+function abrirModalRelatorio() {
+    const modal = document.createElement('div');
+    modal.className = 'modal';
+    
+    const meses = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+    const anoAtual = new Date().getFullYear();
+    let optionsMeses = '';
+    let optionsAnos = '';
+    
+    for(let i = 0; i < meses.length; i++) {
+        optionsMeses += `<option value="${i+1}">${meses[i]}</option>`;
+    }
+    
+    for(let i = anoAtual; i >= 2020; i--) {
+        optionsAnos += `<option value="${i}">${i}</option>`;
+    }
+    
+    modal.innerHTML = `
+        <div class="modal-content">
+            <h3>📊 RELATÓRIO MENSAL</h3>
+            <div class="mes-ano-select" style="display:flex; gap:10px; margin-bottom:15px;">
+                <select id="relatorioMes" style="flex:1;">${optionsMeses}</select>
+                <select id="relatorioAno" style="flex:1;">${optionsAnos}</select>
+            </div>
+            <div class="grid">
+                <button class="btn btn-success" id="btnGerarRelatorio">🔍 GERAR PDF</button>
+                <button class="btn btn-outline" id="btnFecharRelatorio">❌ Fechar</button>
+            </div>
         </div>
     `;
     
-    const tempDiv = document.createElement('div');
-    tempDiv.style.position = 'absolute';
-    tempDiv.style.left = '-9999px';
-    tempDiv.style.top = '-9999px';
-    tempDiv.innerHTML = relatorioHTML;
-    document.body.appendChild(tempDiv);
+    document.body.appendChild(modal);
     
-    const element = document.getElementById('relatorioParaPDF');
-    
-    const opt = {
-        margin: [0.5, 0.5, 0.5, 0.5],
-        filename: `relatorio_${nomeMes}_${ano}.pdf`,
-        image: { type: 'jpeg', quality: 0.98 },
-        html2canvas: { scale: 2, letterRendering: true },
-        jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' }
+    document.getElementById('btnGerarRelatorio').onclick = () => {
+        const mes = parseInt(document.getElementById('relatorioMes').value);
+        const ano = parseInt(document.getElementById('relatorioAno').value);
+        
+        const relatorioHTML = criarConteudoRelatorio(mes, ano);
+        const janela = window.open();
+        janela.document.write(relatorioHTML);
+        janela.document.close();
+        
+        setTimeout(() => {
+            janela.print();
+        }, 500);
+        
+        modal.remove();
+        showToast('📄 Abrindo relatório... Clique em Salvar como PDF');
     };
     
-    html2pdf().set(opt).from(element).save().then(() => {
-        document.body.removeChild(tempDiv);
-        showToast('✅ Relatório PDF gerado com sucesso!');
-    }).catch(() => {
-        document.body.removeChild(tempDiv);
-        showToast('❌ Erro ao gerar PDF');
-    });
+    document.getElementById('btnFecharRelatorio').onclick = () => modal.remove();
 }
 
 function abrirModalConfig() { 
