@@ -83,8 +83,6 @@
         .btn-danger:hover { background: #e8414f; }
         .btn-success { background: var(--ok); color: #000; }
         .btn-success:hover { background: #26c46a; }
-        .btn-warning { background: var(--warn); color: #000; }
-        .btn-warning:hover { background: #e69500; }
 
         .container { padding: 20px; max-width: 700px; margin: 0 auto; }
         .hidden { display: none !important; }
@@ -316,16 +314,7 @@
 
         .btn-icon-only { background: rgba(255,255,255,0.1); border: none; padding: 4px 12px; border-radius: 30px; cursor: pointer; color: white; }
         .historico-mov { max-height: 200px; overflow-y: auto; margin-top: 8px; }
-        .linha-mov { 
-            padding: 8px 0; 
-            border-bottom: 1px solid var(--border); 
-            font-size: 12px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            flex-wrap: wrap;
-            gap: 8px;
-        }
+        .linha-mov { padding: 6px 0; border-bottom: 1px solid var(--border); font-size: 12px; }
         .valor-grande { font-size: 24px; font-weight: bold; }
         .vault-secret { background: #0a0c16; border: 2px solid var(--accent); }
         
@@ -384,58 +373,6 @@
         .data-container select {
             flex: 1;
             margin-bottom: 0;
-        }
-
-        /* Estilos para o relatório PDF - VERSÃO CORRIGIDA */
-        .relatorio-pdf {
-            font-family: 'Segoe UI', Arial, sans-serif;
-            padding: 20px;
-            max-width: 800px;
-            margin: 0 auto;
-            background: white;
-            color: #333;
-        }
-        .relatorio-pdf h1 {
-            color: #6c5ce7;
-            text-align: center;
-            margin-bottom: 10px;
-        }
-        .relatorio-pdf h2 {
-            color: #555;
-            border-bottom: 2px solid #6c5ce7;
-            padding-bottom: 5px;
-            margin-top: 20px;
-        }
-        .relatorio-pdf .header-info {
-            text-align: center;
-            margin-bottom: 20px;
-            color: #666;
-        }
-        .relatorio-pdf table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 10px;
-        }
-        .relatorio-pdf th, .relatorio-pdf td {
-            border: 1px solid #ddd;
-            padding: 8px;
-            text-align: left;
-        }
-        .relatorio-pdf th {
-            background: #6c5ce7;
-            color: white;
-        }
-        .relatorio-pdf .total {
-            font-weight: bold;
-            font-size: 18px;
-            margin-top: 15px;
-            text-align: right;
-        }
-        .relatorio-pdf .footer {
-            text-align: center;
-            margin-top: 30px;
-            font-size: 12px;
-            color: #999;
         }
     </style>
 </head>
@@ -555,6 +492,7 @@
 </div>
 
 <script>
+// ========== CONFIGURAÇÃO DO FIREBASE ==========
 const firebaseConfig = {
     databaseURL: "https://SEU-PROJETO-default-rtdb.firebaseio.com/"
 };
@@ -624,6 +562,7 @@ function calcularTempoAtraso(dueDate) {
 let alunos = [], movimentacoes = [], tarefas = [], aulas = [], checklist = [], grupos = ["Ballet infantil", "Ballet juvenil", "Ballet adulto"];
 let visibilidade = { caixaGeral: false, cofre: false, alunosKPI: false, mensalKPI: false, atrasoKPI: false };
 let grupoSelecionado = null, buscaAtual = '';
+let historicoTelas = ['viewHome']; // Histórico para o botão voltar
 
 function salvarAlunos() { localStorage.setItem('alunos', JSON.stringify(alunos)); }
 function salvarMovimentacoes() { localStorage.setItem('movimentacoes', JSON.stringify(movimentacoes)); }
@@ -631,6 +570,32 @@ function salvarTarefas() { localStorage.setItem('tarefas', JSON.stringify(tarefa
 function salvarAulas() { localStorage.setItem('aulas', JSON.stringify(aulas)); }
 function salvarChecklist() { localStorage.setItem('checklist', JSON.stringify(checklist)); }
 function salvarGrupos() { localStorage.setItem('grupos', JSON.stringify(grupos)); }
+
+// ========== FUNÇÃO PARA O BOTÃO VOLTAR DO CELULAR (CHAMADA PELO KODULAR) ==========
+function voltarHistorico() {
+    if (historicoTelas.length > 1) {
+        historicoTelas.pop();
+        const telaAnterior = historicoTelas[historicoTelas.length - 1];
+        mostrarPainel(telaAnterior);
+        
+        // Atualiza botão ativo da navegação inferior
+        document.querySelectorAll('.bottom-nav button').forEach(btn => {
+            btn.classList.remove('active');
+            const rota = btn.getAttribute('data-bottom');
+            if ((telaAnterior === 'viewHome' && rota === 'home') ||
+                (telaAnterior === 'viewAlunos' && rota === 'alunos') ||
+                (telaAnterior === 'viewTarefas' && rota === 'tarefas')) {
+                btn.classList.add('active');
+            }
+        });
+        document.querySelectorAll('.top-btn').forEach(b => b.classList.remove('active'));
+        return true; // Voltou dentro do app
+    }
+    return false; // Está na Home
+}
+
+// Expor a função para o Kodular chamar
+window.voltarHistorico = voltarHistorico;
 
 function popularSelectsData() {
     const diaSelect = document.getElementById('nascimentoDia');
@@ -719,288 +684,10 @@ function showToast(msg) { const t=document.createElement('div'); t.className='to
 function adicionarMovimentacao(tipo, valor, desc, alunoId=null, chargeId=null) { if(valor<=0) return; movimentacoes.push({id:Date.now(),tipo,valor,desc,data:hojeStr(),alunoId,chargeId}); salvarMovimentacoes(); atualizarHome(); }
 function calcularSaldoCofre() { return movimentacoes.reduce((t,m)=> m.tipo==='entrada'? t+m.valor : t-m.valor,0); }
 
-function atualizarMovimentacaoMatricula(alunoId, valorAntigo, valorNovo, nome) {
-    if (valorAntigo === valorNovo) return;
-    
-    const mov = movimentacoes.find(m => 
-        m.alunoId === alunoId && 
-        m.desc && m.desc.includes('Matrícula') &&
-        m.tipo === 'entrada'
-    );
-    
-    if (mov) {
-        mov.valor = valorNovo;
-        mov.desc = `Matrícula ${nome}`;
-        salvarMovimentacoes();
-        showToast(`💰 Matrícula atualizada: ${formatarMoeda(valorAntigo)} → ${formatarMoeda(valorNovo)}`);
-    } else if (valorNovo > 0 && !mov) {
-        adicionarMovimentacao('entrada', valorNovo, `Matrícula ${nome}`, alunoId);
-    }
-}
+function backupDados() { const data={alunos,movimentacoes,tarefas,aulas,checklist,grupos}; const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=`fluxo_backup_${new Date().toISOString().slice(0,19)}.json`; a.click(); showToast('✅ Backup gerado!'); }
+function restaurarBackup(file) { const reader=new FileReader(); reader.onload=e=>{ try{ const data=JSON.parse(e.target.result); if(data.alunos) alunos=data.alunos; if(data.movimentacoes) movimentacoes=data.movimentacoes; if(data.tarefas) tarefas=data.tarefas; if(data.aulas) aulas=data.aulas; if(data.checklist) checklist=data.checklist; if(data.grupos) grupos=data.grupos; salvarAlunos(); salvarMovimentacoes(); salvarTarefas(); salvarAulas(); salvarChecklist(); salvarGrupos(); sincronizarMensalidades(); atualizarAtrasos(); renderGruposAlunos(); atualizarHome(); renderTelasFinanceiras(); showToast('✅ Backup restaurado!'); }catch(e){ showToast('❌ Arquivo inválido'); } }; reader.readAsText(file); }
 
-function atualizarMovimentacaoMensalidade(alunoId, valorAntigo, valorNovo, nome) {
-    if (valorAntigo === valorNovo) return;
-    
-    const mov = movimentacoes.find(m => 
-        m.alunoId === alunoId && 
-        m.desc && m.desc.includes('Mensalidade') &&
-        m.tipo === 'entrada'
-    );
-    
-    if (mov) {
-        mov.valor = valorNovo;
-        mov.desc = `Mensalidade ${nome}`;
-        salvarMovimentacoes();
-        showToast(`💰 Mensalidade atualizada: ${formatarMoeda(valorAntigo)} → ${formatarMoeda(valorNovo)}`);
-    }
-}
-
-// ========== BACKUP CORRIGIDO (FUNCIONA NO APK) ==========
-function backupDados() { 
-    const data = {
-        alunos: alunos,
-        movimentacoes: movimentacoes,
-        tarefas: tarefas,
-        aulas: aulas,
-        checklist: checklist,
-        grupos: grupos
-    };
-    
-    const dadosString = JSON.stringify(data, null, 2);
-    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(dadosString);
-    const downloadAnchorNode = document.createElement('a');
-    downloadAnchorNode.setAttribute("href", dataStr);
-    downloadAnchorNode.setAttribute("download", `fluxo_backup_${new Date().toISOString().slice(0,19)}.json`);
-    document.body.appendChild(downloadAnchorNode);
-    downloadAnchorNode.click();
-    downloadAnchorNode.remove();
-    showToast('✅ Backup gerado! Verifique a pasta Downloads');
-}
-
-function restaurarBackup(file) { 
-    const reader = new FileReader(); 
-    reader.onload = e => { 
-        try { 
-            const data = JSON.parse(e.target.result); 
-            if(data.alunos) alunos = data.alunos; 
-            if(data.movimentacoes) movimentacoes = data.movimentacoes; 
-            if(data.tarefas) tarefas = data.tarefas; 
-            if(data.aulas) aulas = data.aulas; 
-            if(data.checklist) checklist = data.checklist; 
-            if(data.grupos) grupos = data.grupos; 
-            salvarAlunos(); 
-            salvarMovimentacoes(); 
-            salvarTarefas(); 
-            salvarAulas(); 
-            salvarChecklist(); 
-            salvarGrupos(); 
-            sincronizarMensalidades(); 
-            atualizarAtrasos(); 
-            renderGruposAlunos(); 
-            atualizarHome(); 
-            renderTelasFinanceiras(); 
-            showToast('✅ Backup restaurado!'); 
-        } catch(e) { 
-            showToast('❌ Arquivo inválido'); 
-        } 
-    }; 
-    reader.readAsText(file); 
-}
-
-// ========== RELATÓRIO PDF CORRIGIDO (FUNCIONA NO APK - USA PRINT) ==========
-function criarConteudoRelatorio(mes, ano) {
-    const meses = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
-    const nomeMes = meses[mes - 1];
-    
-    let totalAlunos = alunos.length;
-    let totalMensalidades = 0;
-    let totalArrecadado = 0;
-    let totalInadimplencia = 0;
-    let alunosInadimplentes = [];
-    let alunosPagos = [];
-    let alunosPendentes = [];
-    
-    for(let aluno of alunos) {
-        if(aluno.cobrarMensalidade && aluno.mensalidade > 0) {
-            totalMensalidades += aluno.mensalidade;
-            
-            const charge = aluno.charges.find(c => c.ano === ano && c.mes === mes && !c.isRenovacao);
-            if(charge) {
-                if(charge.status === 'paid') {
-                    totalArrecadado += aluno.mensalidade;
-                    alunosPagos.push({nome: aluno.nome, valor: aluno.mensalidade});
-                } else if(charge.status === 'overdue') {
-                    totalInadimplencia += aluno.mensalidade;
-                    alunosInadimplentes.push({nome: aluno.nome, valor: aluno.mensalidade, tempo: calcularTempoAtraso(charge.dueDate)});
-                } else {
-                    alunosPendentes.push({nome: aluno.nome, valor: aluno.mensalidade});
-                }
-            } else {
-                alunosPendentes.push({nome: aluno.nome, valor: aluno.mensalidade});
-            }
-        }
-    }
-    
-    const movPeriodo = movimentacoes.filter(m => {
-        const dataMov = new Date(m.data);
-        return dataMov.getMonth() + 1 === mes && dataMov.getFullYear() === ano;
-    });
-    
-    const totalEntradas = movPeriodo.filter(m => m.tipo === 'entrada').reduce((s, m) => s + m.valor, 0);
-    const totalSaidas = movPeriodo.filter(m => m.tipo === 'saida').reduce((s, m) => s + m.valor, 0);
-    const saldoCofre = calcularSaldoCofre();
-    
-    return `
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <meta charset="UTF-8">
-            <title>Relatório ${nomeMes}/${ano}</title>
-            <style>
-                body { font-family: 'Segoe UI', Arial, sans-serif; padding: 20px; max-width: 800px; margin: 0 auto; background: white; color: #333; }
-                h1 { color: #6c5ce7; text-align: center; margin-bottom: 10px; }
-                h2 { color: #555; border-bottom: 2px solid #6c5ce7; padding-bottom: 5px; margin-top: 20px; }
-                .header-info { text-align: center; margin-bottom: 20px; color: #666; }
-                table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-                th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-                th { background: #6c5ce7; color: white; }
-                .total { font-weight: bold; font-size: 18px; margin-top: 15px; text-align: right; }
-                .footer { text-align: center; margin-top: 30px; font-size: 12px; color: #999; }
-                @media print {
-                    body { margin: 0; padding: 15px; }
-                }
-            </style>
-        </head>
-        <body>
-            <h1>📋 FLUXO ESCOLAR</h1>
-            <div class="header-info">
-                <strong>RELATÓRIO MENSAL - ${nomeMes}/${ano}</strong><br>
-                Gerado em: ${new Date().toLocaleString('pt-BR')}
-            </div>
-            
-            <h2>📊 RESUMO FINANCEIRO</h2>
-            <table>
-                <tr><th>Descrição</th><th>Valor</th></tr>
-                <tr><td>Total de Alunos</td><td>${totalAlunos}</td></tr>
-                <tr><td>Total de Mensalidades</td><td>${formatarMoeda(totalMensalidades)}</td></tr>
-                <tr><td>Total Arrecadado</td><td style="color:green">${formatarMoeda(totalArrecadado)}</td></tr>
-                <tr><td>Total Inadimplência</td><td style="color:red">${formatarMoeda(totalInadimplencia)}</td></tr>
-                <tr><td>Total Entradas (mês)</td><td style="color:green">${formatarMoeda(totalEntradas)}</td></tr>
-                <tr><td>Total Saídas (mês)</td><td style="color:red">${formatarMoeda(totalSaidas)}</td></tr>
-                <tr><td><strong>Saldo em Caixa</strong></td><td><strong>${formatarMoeda(saldoCofre)}</strong></td></tr>
-            </table>
-            
-            <h2>✅ ALUNOS COM PAGAMENTO EM DIA (${alunosPagos.length})</h2>
-            <table>
-                <tr><th>Aluno</th><th>Valor</th></tr>
-                ${alunosPagos.map(a => `<tr><td>${a.nome}</td><td>${formatarMoeda(a.valor)}</td></tr>`).join('') || '<tr><td colspan="2">Nenhum aluno</td></tr>'}
-            </table>
-            
-            <h2>⚠️ ALUNOS PENDENTES (${alunosPendentes.length})</h2>
-            <table>
-                <tr><th>Aluno</th><th>Valor</th></tr>
-                ${alunosPendentes.map(a => `<tr><td>${a.nome}</td><td>${formatarMoeda(a.valor)}</td></tr>`).join('') || '<tr><td colspan="2">Nenhum aluno</td></tr>'}
-            </table>
-            
-            <h2>🔴 ALUNOS INADIMPLENTES (${alunosInadimplentes.length})</h2>
-            <table>
-                <tr><th>Aluno</th><th>Valor</th><th>Tempo de Atraso</th></tr>
-                ${alunosInadimplentes.map(a => `<tr><td>${a.nome}</td><td>${formatarMoeda(a.valor)}</td><td>${a.tempo}</td></tr>`).join('') || '<tr><td colspan="3">Nenhum aluno inadimplente</td></tr>'}
-            </table>
-            
-            <h2>💰 MOVIMENTAÇÕES DO MÊS</h2>
-            <table>
-                <tr><th>Data</th><th>Descrição</th><th>Valor</th></tr>
-                ${movPeriodo.sort((a,b) => b.data.localeCompare(a.data)).map(m => `<tr><td>${m.data}</td><td>${m.desc}</td><td style="color:${m.tipo === 'entrada' ? 'green' : 'red'}">${m.tipo === 'entrada' ? '+' : '-'} ${formatarMoeda(m.valor)}</td></tr>`).join('') || '<tr><td colspan="3">Nenhuma movimentação no período</td></tr>'}
-            </table>
-            
-            <div class="total">
-                Total de Alunos Ativos: ${alunos.filter(a => a.status === 'Ativo').length}
-            </div>
-            
-            <div class="footer">
-                Relatório gerado pelo sistema Fluxo Escolar
-            </div>
-        </body>
-        </html>
-    `;
-}
-
-function abrirModalRelatorio() {
-    const modal = document.createElement('div');
-    modal.className = 'modal';
-    
-    const meses = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
-    const anoAtual = new Date().getFullYear();
-    let optionsMeses = '';
-    let optionsAnos = '';
-    
-    for(let i = 0; i < meses.length; i++) {
-        optionsMeses += `<option value="${i+1}">${meses[i]}</option>`;
-    }
-    
-    for(let i = anoAtual; i >= 2020; i--) {
-        optionsAnos += `<option value="${i}">${i}</option>`;
-    }
-    
-    modal.innerHTML = `
-        <div class="modal-content">
-            <h3>📊 RELATÓRIO MENSAL</h3>
-            <div class="mes-ano-select" style="display:flex; gap:10px; margin-bottom:15px;">
-                <select id="relatorioMes" style="flex:1;">${optionsMeses}</select>
-                <select id="relatorioAno" style="flex:1;">${optionsAnos}</select>
-            </div>
-            <div class="grid">
-                <button class="btn btn-success" id="btnGerarRelatorio">🔍 GERAR PDF</button>
-                <button class="btn btn-outline" id="btnFecharRelatorio">❌ Fechar</button>
-            </div>
-        </div>
-    `;
-    
-    document.body.appendChild(modal);
-    
-    document.getElementById('btnGerarRelatorio').onclick = () => {
-        const mes = parseInt(document.getElementById('relatorioMes').value);
-        const ano = parseInt(document.getElementById('relatorioAno').value);
-        
-        const relatorioHTML = criarConteudoRelatorio(mes, ano);
-        const janela = window.open();
-        janela.document.write(relatorioHTML);
-        janela.document.close();
-        
-        setTimeout(() => {
-            janela.print();
-        }, 500);
-        
-        modal.remove();
-        showToast('📄 Abrindo relatório... Clique em Salvar como PDF');
-    };
-    
-    document.getElementById('btnFecharRelatorio').onclick = () => modal.remove();
-}
-
-function abrirModalConfig() { 
-    const modal=document.createElement('div'); 
-    modal.className='modal'; 
-    modal.innerHTML=`
-        <div class="modal-content">
-            <h3>⚙️ CONFIGURAÇÕES</h3>
-            <div class="grid">
-                <button class="btn-small btn-success" id="modalBackupBtn">📤 Backup</button>
-                <button class="btn-small btn-outline" id="modalRestoreBtn">📥 Restaurar</button>
-            </div>
-            <div class="divider"></div>
-            <button class="btn-small btn-warning" id="modalRelatorioBtn" style="background:var(--warn); color:#000; width:100%; margin:10px 0;">📊 RELATÓRIO MENSAL</button>
-            <div class="divider"></div>
-            <button class="btn-small btn-outline" id="fecharModalConfig">Fechar</button>
-        </div>
-    `; 
-    document.body.appendChild(modal); 
-    document.getElementById('modalBackupBtn').onclick=()=>{ backupDados(); modal.remove(); }; 
-    document.getElementById('modalRestoreBtn').onclick=()=>{ const input=document.createElement('input'); input.type='file'; input.accept='application/json'; input.onchange=e=>{ if(e.target.files[0]) restaurarBackup(e.target.files[0]); modal.remove(); }; input.click(); };
-    document.getElementById('modalRelatorioBtn').onclick=()=>{ modal.remove(); abrirModalRelatorio(); };
-    document.getElementById('fecharModalConfig').onclick=()=>modal.remove(); 
-}
+function abrirModalConfig() { const modal=document.createElement('div'); modal.className='modal'; modal.innerHTML=`<div class="modal-content"><h3>⚙️ Configurações</h3><div class="grid"><button class="btn-small btn-success" id="modalBackupBtn">📤 Backup</button><button class="btn-small btn-outline" id="modalRestoreBtn">📥 Restaurar</button></div><div style="margin-top:15px;"><button class="btn-small btn-outline" id="fecharModalConfig">Fechar</button></div></div>`; document.body.appendChild(modal); document.getElementById('modalBackupBtn').onclick=()=>{ backupDados(); modal.remove(); }; document.getElementById('modalRestoreBtn').onclick=()=>{ const input=document.createElement('input'); input.type='file'; input.accept='application/json'; input.onchange=e=>{ if(e.target.files[0]) restaurarBackup(e.target.files[0]); modal.remove(); }; input.click(); }; document.getElementById('fecharModalConfig').onclick=()=>modal.remove(); }
 
 function verificarRenovacao(aluno) { if(!aluno.cobrarRenovacao || aluno.valorRenovacao<=0) return false; if(aluno.status!=='Ativo' && aluno.status!=='Experimental') return false; const hoje=new Date(); const ultimaRenovacao=aluno.ultimaRenovacao?new Date(aluno.ultimaRenovacao):new Date(aluno.createdAt); let deveCobrar=false, dataVencimento=null; if(aluno.renovacaoTipo==='aniversario'){ const prox=new Date(ultimaRenovacao); prox.setFullYear(prox.getFullYear()+1); if(hoje>=prox){ deveCobrar=true; dataVencimento=prox; } } else if(aluno.renovacaoTipo==='janeiro'){ const anoAtual=hoje.getFullYear(); const janeiroEsteAno=new Date(anoAtual,0,1); const ultimoJaneiro=new Date(ultimaRenovacao.getFullYear(),0,1); if(janeiroEsteAno>ultimoJaneiro && hoje>=janeiroEsteAno){ deveCobrar=true; dataVencimento=janeiroEsteAno; } } if(deveCobrar && !aluno.renovacaoPagaNoPeriodo){ aluno.charges.push({id:Date.now()+Math.random()*10000, ano:dataVencimento.getFullYear(), mes:dataVencimento.getMonth()+1, amount:aluno.valorRenovacao, status:'pending', dueDate:dataVencimento.toISOString().split('T')[0], isRenovacao:true}); aluno.ultimaRenovacao=hoje.toISOString().split('T')[0]; aluno.renovacaoPagaNoPeriodo=true; return true; } return false; }
 
@@ -1043,7 +730,7 @@ function renderInadimplentes() {
 }
 
 window.abrirModalPagamento = abrirModalPagamento;
-window.mostrarInadimplentes = () => { renderInadimplentes(); window.mostrarPainel('painelPendentes'); };
+window.mostrarInadimplentes = () => { renderInadimplentes(); mostrarPainel('painelPendentes'); };
 
 function renderReceberHoje(){ const hoje=hojeStr(), container=document.getElementById('listaHoje'); if(!container) return; container.innerHTML=''; let encontrou=false; for(let aluno of alunos){ for(let charge of aluno.charges){ if(charge.dueDate===hoje && charge.status==='pending'){ encontrou=true; const div=document.createElement('div'); div.className='item'; div.innerHTML=`<div class="flex-between"><b>${aluno.nome}</b><span class="badge warn">Vence hoje</span></div><div>${formatarMoeda(charge.amount)}</div><button class="btn-small btn-success" onclick="window.abrirModalPagamento(${aluno.id})">✅ Receber</button>`; container.appendChild(div); } } } if(!encontrou) container.innerHTML='<div class="item" style="text-align:center;">🎉 Nenhuma cobrança para hoje.</div>'; }
 
@@ -1055,21 +742,14 @@ function renderGruposAlunos(){ const container=document.getElementById('gruposCo
 
 function atualizarListaAlunos(){ let filtrados=[]; if(buscaAtual) filtrados=alunos.filter(a=>a.nome.toLowerCase().includes(buscaAtual.toLowerCase())); else if(grupoSelecionado) filtrados=alunos.filter(a=>a.modalidade===grupoSelecionado); const container=document.getElementById('alunosListaContainer'); if(filtrados.length===0){ container.innerHTML=''; document.getElementById('nenhumAlunoMsg').style.display='block'; return; } document.getElementById('nenhumAlunoMsg').style.display='none'; container.innerHTML=''; filtrados.forEach(a=>{ const div=document.createElement('div'); div.className='item'; let info=`${a.nome} <span class="badge ${a.status==='Ativo'?'ok':'inativo'}">${a.status}</span>`; if(a.cobrarMatricula && a.valorMatricula>0) info+=` | Mat: ${formatarMoeda(a.valorMatricula)}`; if(a.cobrarMensalidade && a.mensalidade>0) info+=` | Mens: ${formatarMoeda(a.mensalidade)}`; div.innerHTML=`<b>${info}</b><div class="small">${a.modalidade} | Vence dia ${a.dueDay}</div><div class="small">📅 Nasc: ${a.dataNascimento || '-'} | CPF: ${a.cpfAluno || '-'}</div><div class="small">👤 Resp: ${a.responsavel} | CPF: ${a.cpfResponsavel||'-'}</div>`; div.onclick=()=>editarAluno(a.id); container.appendChild(div); }); }
 
-function editarAluno(id){ const a=alunos.find(x=>x.id===id); if(!a) return; document.getElementById('nome').value=a.nome; formatarDataParaEditar(a.dataNascimento); document.getElementById('cpfAluno').value=a.cpfAluno || ''; document.getElementById('telefone').value=a.telefone||''; document.getElementById('endereco').value=a.endereco||''; document.getElementById('responsavel').value=a.responsavel||''; document.getElementById('cpfResponsavel').value=a.cpfResponsavel||''; document.getElementById('telResp').value=a.telResp||''; document.getElementById('modalidade').value=a.modalidade; document.getElementById('plano').value=a.plano; document.getElementById('statusAluno').value=a.status; document.getElementById('cobrarMatricula').checked=a.cobrarMatricula; document.getElementById('cobrarMensalidade').checked=a.cobrarMensalidade; document.getElementById('cobrarRenovacao').checked=a.cobrarRenovacao; document.getElementById('valorMatricula').value=a.valorMatricula||''; document.getElementById('mensalidade').value=a.mensalidade||''; document.getElementById('valorRenovacao').value=a.valorRenovacao||''; document.getElementById('vencimento').value=a.dueDay||''; if(document.querySelector(`input[name="renovacaoTipo"][value="${a.renovacaoTipo}"]`)) document.querySelector(`input[name="renovacaoTipo"][value="${a.renovacaoTipo}"]`).checked=true; window.editId=id; document.getElementById('btnExcluirAluno').style.display='block'; window.mostrarPainel('viewAlunoForm'); }
+function editarAluno(id){ const a=alunos.find(x=>x.id===id); if(!a) return; document.getElementById('nome').value=a.nome; formatarDataParaEditar(a.dataNascimento); document.getElementById('cpfAluno').value=a.cpfAluno || ''; document.getElementById('telefone').value=a.telefone||''; document.getElementById('endereco').value=a.endereco||''; document.getElementById('responsavel').value=a.responsavel||''; document.getElementById('cpfResponsavel').value=a.cpfResponsavel||''; document.getElementById('telResp').value=a.telResp||''; document.getElementById('modalidade').value=a.modalidade; document.getElementById('plano').value=a.plano; document.getElementById('statusAluno').value=a.status; document.getElementById('cobrarMatricula').checked=a.cobrarMatricula; document.getElementById('cobrarMensalidade').checked=a.cobrarMensalidade; document.getElementById('cobrarRenovacao').checked=a.cobrarRenovacao; document.getElementById('valorMatricula').value=a.valorMatricula||''; document.getElementById('mensalidade').value=a.mensalidade||''; document.getElementById('valorRenovacao').value=a.valorRenovacao||''; document.getElementById('vencimento').value=a.dueDay||''; if(document.querySelector(`input[name="renovacaoTipo"][value="${a.renovacaoTipo}"]`)) document.querySelector(`input[name="renovacaoTipo"][value="${a.renovacaoTipo}"]`).checked=true; window.editId=id; document.getElementById('btnExcluirAluno').style.display='block'; mostrarPainel('viewAlunoForm'); }
 
-function salvarAlunoForm(){ 
-    const nome=document.getElementById('nome').value.trim(); 
-    const dataNascimento=formatarDataParaSalvar(); 
-    const cpfAluno=document.getElementById('cpfAluno').value.trim(); 
-    const responsavel=document.getElementById('responsavel').value.trim(); 
-    const cpf=document.getElementById('cpfResponsavel').value.trim();
-    
+function salvarAlunoForm(){ const nome=document.getElementById('nome').value.trim(); const dataNascimento=formatarDataParaSalvar(); const cpfAluno=document.getElementById('cpfAluno').value.trim(); const responsavel=document.getElementById('responsavel').value.trim(); const cpf=document.getElementById('cpfResponsavel').value.trim();
     if(!nome) return alert('Preencha o nome do aluno');
     if(!dataNascimento) return alert('Preencha a Data de Nascimento completa (Dia, Mês e Ano)');
     if(!cpfAluno) return alert('Preencha o CPF do aluno');
     if(!responsavel) return alert('Preencha o nome do responsável');
     if(!cpf) return alert('Preencha o CPF do responsável');
-    
     const cobrarMatricula=document.getElementById('cobrarMatricula').checked;
     const cobrarMensalidade=document.getElementById('cobrarMensalidade').checked;
     const cobrarRenovacao=document.getElementById('cobrarRenovacao').checked;
@@ -1082,56 +762,9 @@ function salvarAlunoForm(){
     const modalidade=document.getElementById('modalidade').value;
     const statusAluno=document.getElementById('statusAluno').value;
     const agora=hojeStr();
-    
-    if(window.editId){ 
-        const idx=alunos.findIndex(a=>a.id===window.editId); 
-        if(idx!==-1){ 
-            const antigo=alunos[idx]; 
-            
-            if (antigo.cobrarMatricula && antigo.matriculaPaga && antigo.valorMatricula !== valorMatricula) {
-                atualizarMovimentacaoMatricula(antigo.id, antigo.valorMatricula, valorMatricula, nome);
-            }
-            
-            if (antigo.cobrarMensalidade && antigo.mensalidade !== mensalidade && antigo.mensalidade > 0) {
-                atualizarMovimentacaoMensalidade(antigo.id, antigo.mensalidade, mensalidade, nome);
-            }
-            
-            const novo={...antigo, nome, dataNascimento, cpfAluno, telefone:document.getElementById('telefone').value, endereco:document.getElementById('endereco').value, responsavel, cpfResponsavel:cpf, telResp:document.getElementById('telResp').value, modalidade, plano:document.getElementById('plano').value, mensalidade, dueDay, valorMatricula, cobrarMatricula, cobrarMensalidade, cobrarRenovacao, valorRenovacao, renovacaoTipo, status:statusAluno}; 
-            
-            if(cobrarMatricula && valorMatricula>0 && !antigo.matriculaPaga){ 
-                novo.matriculaPaga=true; 
-                adicionarMovimentacao('entrada',valorMatricula,`Matrícula ${nome}`,novo.id); 
-            } else { 
-                novo.matriculaPaga=antigo.matriculaPaga; 
-            } 
-            
-            for(let ch of novo.charges) if(ch.status!=='paid' && !ch.isRenovacao) ch.amount=mensalidade; 
-            alunos[idx]=novo; 
-            showToast(`✅ ${nome} atualizado!`); 
-        } 
-        window.mostrarPainel('viewAlunos'); 
-        window.editId = null;
-    } else { 
-        const novo={ id:Date.now(), nome, dataNascimento, cpfAluno, telefone:document.getElementById('telefone').value, endereco:document.getElementById('endereco').value, responsavel, cpfResponsavel:cpf, telResp:document.getElementById('telResp').value, modalidade, plano:document.getElementById('plano').value, mensalidade, dueDay, valorMatricula, cobrarMatricula, cobrarMensalidade, cobrarRenovacao, valorRenovacao, renovacaoTipo, matriculaPaga:false, status:statusAluno, charges:[], createdAt:agora, ultimaRenovacao:agora, renovacaoPagaNoPeriodo:false }; 
-        if(cobrarMatricula && valorMatricula>0){ 
-            novo.matriculaPaga=true; 
-            adicionarMovimentacao('entrada',valorMatricula,`Matrícula ${nome}`,novo.id); 
-            showToast(`✅ ${nome} cadastrado! Matrícula: ${formatarMoeda(valorMatricula)}`); 
-        } else { 
-            showToast(`✅ ${nome} cadastrado!`); 
-        } 
-        alunos.push(novo); 
-        limparFormulario(); 
-    } 
-    salvarAlunos(); 
-    sincronizarMensalidades(); 
-    atualizarAtrasos(); 
-    renderGruposAlunos(); 
-    atualizarHome(); 
-    renderTelasFinanceiras(); 
-}
+    if(window.editId){ const idx=alunos.findIndex(a=>a.id===window.editId); if(idx!==-1){ const antigo=alunos[idx]; const novo={...antigo, nome, dataNascimento, cpfAluno, telefone:document.getElementById('telefone').value, endereco:document.getElementById('endereco').value, responsavel, cpfResponsavel:cpf, telResp:document.getElementById('telResp').value, modalidade, plano:document.getElementById('plano').value, mensalidade, dueDay, valorMatricula, cobrarMatricula, cobrarMensalidade, cobrarRenovacao, valorRenovacao, renovacaoTipo, status:statusAluno}; if(cobrarMatricula && valorMatricula>0 && !antigo.matriculaPaga){ novo.matriculaPaga=true; adicionarMovimentacao('entrada',valorMatricula,`Matrícula ${nome}`,novo.id); } else novo.matriculaPaga=antigo.matriculaPaga; for(let ch of novo.charges) if(ch.status!=='paid' && !ch.isRenovacao) ch.amount=mensalidade; alunos[idx]=novo; showToast(`✅ ${nome} atualizado!`); } cancelarForm(); mostrarPainel('viewAlunos'); } else { const novo={ id:Date.now(), nome, dataNascimento, cpfAluno, telefone:document.getElementById('telefone').value, endereco:document.getElementById('endereco').value, responsavel, cpfResponsavel:cpf, telResp:document.getElementById('telResp').value, modalidade, plano:document.getElementById('plano').value, mensalidade, dueDay, valorMatricula, cobrarMatricula, cobrarMensalidade, cobrarRenovacao, valorRenovacao, renovacaoTipo, matriculaPaga:false, status:statusAluno, charges:[], createdAt:agora, ultimaRenovacao:agora, renovacaoPagaNoPeriodo:false }; if(cobrarMatricula && valorMatricula>0){ novo.matriculaPaga=true; adicionarMovimentacao('entrada',valorMatricula,`Matrícula ${nome}`,novo.id); showToast(`✅ ${nome} cadastrado! Matrícula: ${formatarMoeda(valorMatricula)}`); } else showToast(`✅ ${nome} cadastrado!`); alunos.push(novo); limparFormulario(); } salvarAlunos(); sincronizarMensalidades(); atualizarAtrasos(); renderGruposAlunos(); atualizarHome(); renderTelasFinanceiras(); if(!window.editId) mostrarPainel('viewAlunoForm'); }
 
-function cancelarForm(){ window.editId=null; document.getElementById('btnExcluirAluno').style.display='none'; document.getElementById('historicoMatriculaInfo').style.display='none'; limparFormulario(); window.mostrarPainel('viewAlunos'); }
+function cancelarForm(){ window.editId=null; document.getElementById('btnExcluirAluno').style.display='none'; document.getElementById('historicoMatriculaInfo').style.display='none'; limparFormulario(); mostrarPainel('viewAlunos'); }
 function limparFormulario(){ document.getElementById('nome').value=''; document.getElementById('nascimentoDia').value=''; document.getElementById('nascimentoMes').value=''; document.getElementById('nascimentoAno').value=''; document.getElementById('cpfAluno').value=''; document.getElementById('telefone').value=''; document.getElementById('endereco').value=''; document.getElementById('responsavel').value=''; document.getElementById('cpfResponsavel').value=''; document.getElementById('telResp').value=''; document.getElementById('valorMatricula').value=''; document.getElementById('mensalidade').value=''; document.getElementById('valorRenovacao').value=''; document.getElementById('vencimento').value=''; document.getElementById('cobrarMatricula').checked=false; document.getElementById('cobrarMensalidade').checked=false; document.getElementById('cobrarRenovacao').checked=false; if(grupos.length) document.getElementById('modalidade').value=grupos[0]; document.getElementById('plano').value='Básico'; document.getElementById('statusAluno').value='Ativo'; }
 function excluirAluno(id){ if(confirm('Excluir aluno?')){ alunos=alunos.filter(a=>a.id!==id); salvarAlunos(); sincronizarMensalidades(); atualizarAtrasos(); grupoSelecionado=null; buscaAtual=''; renderGruposAlunos(); renderTelasFinanceiras(); atualizarHome(); if(window.editId===id) cancelarForm(); showToast('✅ Aluno removido'); } }
 
@@ -1156,17 +789,16 @@ window.removerTarefa=(idx)=>{ tarefas.splice(idx,1); salvarTarefas(); renderTare
 document.getElementById('addTarefaBtn')?.addEventListener('click',()=>{ let t=prompt("Nova tarefa:"); if(t){ tarefas.push(t); salvarTarefas(); renderTarefas(); } });
 
 function resetarHistoricoVisual(){ if(confirm("Limpar histórico? O saldo será mantido.")){ const saldoAtual=calcularSaldoCofre(); movimentacoes=[]; salvarMovimentacoes(); if(saldoAtual!==0) adicionarMovimentacao('entrada',saldoAtual,`Ajuste de saldo`); atualizarHome(); showToast('✅ Histórico limpo'); } }
-function configurarCofre(){ 
-    document.getElementById('btnEntradaManual')?.addEventListener('click',()=>{ const v=parseFloat(prompt("Valor da entrada (R$):")); if(v&&v>0){ const d=prompt("Descrição:"); adicionarMovimentacao('entrada',v,d||"Entrada manual"); showToast(`✅ Entrada de ${formatarMoeda(v)}`); } }); 
-    document.getElementById('btnSaidaManual')?.addEventListener('click',()=>{ const saldo=calcularSaldoCofre(); const v=parseFloat(prompt(`Valor da saída - Saldo: ${formatarMoeda(saldo)}:`)); if(v&&v>0){ if(v>saldo){ alert("Saldo insuficiente"); return; } const d=prompt("Descrição:"); adicionarMovimentacao('saida',v,d||"Saída manual"); showToast(`✅ Saída de ${formatarMoeda(v)}`); } }); 
-    document.getElementById('btnResetHistorico')?.addEventListener('click',resetarHistoricoVisual);
-}
+function configurarCofre(){ document.getElementById('btnEntradaManual')?.addEventListener('click',()=>{ const v=parseFloat(prompt("Valor da entrada (R$):")); if(v&&v>0){ const d=prompt("Descrição:"); adicionarMovimentacao('entrada',v,d||"Entrada manual"); showToast(`✅ Entrada de ${formatarMoeda(v)}`); } }); document.getElementById('btnSaidaManual')?.addEventListener('click',()=>{ const saldo=calcularSaldoCofre(); const v=parseFloat(prompt(`Valor da saída - Saldo: ${formatarMoeda(saldo)}:`)); if(v&&v>0){ if(v>saldo){ alert("Saldo insuficiente"); return; } const d=prompt("Descrição:"); adicionarMovimentacao('saida',v,d||"Saída manual"); showToast(`✅ Saída de ${formatarMoeda(v)}`); } }); document.getElementById('btnResetHistorico')?.addEventListener('click',resetarHistoricoVisual); }
 
-let historicoTelas = ['viewHome'];
-
-window.mostrarPainel = function(viewId) {
+function mostrarPainel(viewId) {
     document.querySelectorAll('.view-pane').forEach(p => p.classList.add('hidden'));
     document.getElementById(viewId).classList.remove('hidden');
+    
+    // Adiciona ao histórico para o botão voltar (exceto se for a mesma tela)
+    if (historicoTelas[historicoTelas.length - 1] !== viewId) {
+        historicoTelas.push(viewId);
+    }
     
     if (viewId === 'viewAlunos') {
         renderGruposAlunos();
@@ -1180,11 +812,7 @@ window.mostrarPainel = function(viewId) {
     if (viewId === 'painelAulas') renderAulas();
     if (viewId === 'painelChecklist') renderChecklist();
     if (viewId === 'viewTarefas') renderTarefas();
-    
-    if (historicoTelas[historicoTelas.length - 1] !== viewId) {
-        historicoTelas.push(viewId);
-    }
-};
+}
 
 function init(){ 
     carregarDados(); 
@@ -1193,7 +821,7 @@ function init(){
     atualizarAtrasos(); 
     atualizarSelectModalidade(); 
     configurarCofre(); 
-    window.mostrarPainel('viewHome'); 
+    mostrarPainel('viewHome'); 
     renderGruposAlunos(); 
     atualizarHome(); 
     renderTelasFinanceiras(); 
@@ -1206,16 +834,16 @@ function init(){
         eye.addEventListener('click',(e)=>{ e.stopPropagation(); const tipo=eye.getAttribute('data-tipo'); if(tipo==='alunos') toggleKPI('alunosKPI'); if(tipo==='mensal') toggleKPI('mensalKPI'); if(tipo==='atraso') toggleKPI('atrasoKPI'); }); 
     }); 
     document.getElementById('searchAluno')?.addEventListener('input',(e)=>{ buscaAtual=e.target.value; grupoSelecionado=null; if(buscaAtual) atualizarListaAlunos(); else{ document.getElementById('alunosListaContainer').innerHTML=''; document.getElementById('nenhumAlunoMsg').style.display='block'; } }); 
-    document.getElementById('btnNovoAluno').onclick=()=>{ limparFormulario(); window.editId=null; document.getElementById('btnExcluirAluno').style.display='none'; window.mostrarPainel('viewAlunoForm'); }; 
+    document.getElementById('btnNovoAluno').onclick=()=>{ limparFormulario(); window.editId=null; document.getElementById('btnExcluirAluno').style.display='none'; mostrarPainel('viewAlunoForm'); }; 
     document.getElementById('btnSalvarAluno').onclick=salvarAlunoForm; 
     document.getElementById('btnCancelarForm').onclick=cancelarForm; 
     document.getElementById('btnExcluirAluno').onclick=()=>{ if(window.editId) excluirAluno(window.editId); }; 
     document.getElementById('openSettingsModal').onclick=abrirModalConfig; 
     document.querySelectorAll('.top-btn').forEach(btn=>{ 
-        btn.onclick=()=>{ const acao=btn.getAttribute('data-top'); if(acao==='receberHoje') window.mostrarPainel('painelReceberHoje'); else if(acao==='pendentes'){ renderInadimplentes(); window.mostrarPainel('painelPendentes'); } else if(acao==='aulas') window.mostrarPainel('painelAulas'); else if(acao==='checklist') window.mostrarPainel('painelChecklist'); document.querySelectorAll('.top-btn').forEach(b=>b.classList.remove('active')); btn.classList.add('active'); }; 
+        btn.onclick=()=>{ const acao=btn.getAttribute('data-top'); if(acao==='receberHoje') mostrarPainel('painelReceberHoje'); else if(acao==='pendentes'){ renderInadimplentes(); mostrarPainel('painelPendentes'); } else if(acao==='aulas') mostrarPainel('painelAulas'); else if(acao==='checklist') mostrarPainel('painelChecklist'); document.querySelectorAll('.top-btn').forEach(b=>b.classList.remove('active')); btn.classList.add('active'); }; 
     }); 
     document.querySelectorAll('.bottom-nav button').forEach(btn=>{ 
-        btn.onclick=()=>{ const rota=btn.getAttribute('data-bottom'); if(rota==='home') window.mostrarPainel('viewHome'); if(rota==='alunos') window.mostrarPainel('viewAlunos'); if(rota==='tarefas') window.mostrarPainel('viewTarefas'); document.querySelectorAll('.bottom-nav button').forEach(b=>b.classList.remove('active')); btn.classList.add('active'); document.querySelectorAll('.top-btn').forEach(b=>b.classList.remove('active')); }; 
+        btn.onclick=()=>{ const rota=btn.getAttribute('data-bottom'); if(rota==='home') mostrarPainel('viewHome'); if(rota==='alunos') mostrarPainel('viewAlunos'); if(rota==='tarefas') mostrarPainel('viewTarefas'); document.querySelectorAll('.bottom-nav button').forEach(b=>b.classList.remove('active')); btn.classList.add('active'); document.querySelectorAll('.top-btn').forEach(b=>b.classList.remove('active')); }; 
     }); 
     
     verificarAcessoRemoto();
